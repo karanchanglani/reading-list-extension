@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Read Later</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #4f46e5;
+      --accent-dark: #4338ca;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --bg: #ffffff;
+      --bg-subtle: #f9fafb;
+      --fg: #1f2430;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      width: 340px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    svg.icon {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 15px;
+      margin: 0;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    #save-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: none;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #save-btn svg.icon { width: 13px; height: 13px; }
+    #save-btn:hover:not(:disabled) { background: var(--accent-dark); }
+    #save-btn:disabled { opacity: 0.55; cursor: default; }
+    #save-btn.is-saved { background: var(--success); }
+
+    /* status line */
+    #status {
+      padding: 6px 14px 0;
+      font-size: 11px;
+      color: var(--muted);
+      min-height: 14px;
+    }
+
+    /* search bar */
+    #search-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 10px 14px 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg-subtle);
+    }
+    #search-bar svg.icon { color: var(--muted); }
+    #search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 12.5px;
+      color: var(--fg);
+      min-width: 0;
+    }
+    #search-input::placeholder { color: var(--muted); }
+    #search-clear {
+      flex: none;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+    }
+    #search-clear:hover { color: var(--fg); }
+    #search-clear[hidden] { display: none; }
+
+    /* list */
+    #list {
+      list-style: none;
+      margin: 0;
+      padding: 4px 0;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    #list li {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    #list li:hover { background: rgba(79, 70, 229, 0.06); }
+    #list img.favicon {
+      width: 16px;
+      height: 16px;
+      flex: none;
+      border-radius: 3px;
+    }
+    #list .info {
+      flex: 1;
+      min-width: 0;
+    }
+    #list .title {
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #list .domain {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+    #list .read-btn,
+    #list .remove-btn {
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    #list .read-btn:hover { color: var(--success); background: rgba(22, 163, 74, 0.1); }
+    #list .read-btn.is-active { color: var(--success); }
+    #list .remove-btn:hover { color: var(--danger); background: rgba(220, 38, 38, 0.1); }
+    #list li.is-read .title {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+    #list li.is-read img.favicon { opacity: 0.5; }
+
+    /* empty / no-results states */
+    #empty-state,
+    #no-results {
+      padding: 28px 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Read Later</h1>
+    <button id="save-btn" type="button" title="Save the current page">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4" width="8" height="16" rx="1"></rect>
+        <rect x="13" y="4" width="8" height="16" rx="1"></rect>
+        <line x1="12" y1="4" x2="12" y2="20"></line>
+      </svg>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <line x1="12" y1="6" x2="12" y2="18"></line>
+        <line x1="6" y1="12" x2="18" y2="12"></line>
+      </svg>
+      <span id="save-btn-label">Save Current Page</span>
+    </button>
+  </header>
+
+  <div id="status"></div>
+
+  <div id="search-bar">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="10" cy="10" r="6"></circle>
+      <line x1="16" y1="16" x2="21" y2="21"></line>
+    </svg>
+    <input id="search-input" type="text" placeholder="Search saved articles..." autocomplete="off" />
+    <button id="search-clear" type="button" title="Clear search" hidden>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <ul id="list"></ul>
+  <div id="empty-state" hidden>No saved pages yet.<br />Click "Save Current Page" to add one.</div>
+  <div id="no-results" hidden>No matches found.</div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
