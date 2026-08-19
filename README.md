@@ -135,3 +135,7 @@ icons/             — toolbar and extension icons
 | `activeTab` / `tabs` | Read the current tab's URL, title, and favicon to save it |
 | `contextMenus` | The right-click "Add link/page" and "Open Reading List Manager" menu items |
 | `notifications` | A one-time nudge on install to pin the extension to the toolbar (Chrome doesn't allow extensions to pin themselves) |
+
+## License
+
+MIT © 2026 Karan Changlani — see [LICENSE](LICENSE). Free to use, modify, and distribute, as long as the original copyright notice stays attached.
