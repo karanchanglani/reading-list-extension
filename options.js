@@ -2,6 +2,7 @@ import { getSettings, saveSettings } from "./storage.js";
 
 const fabToggle = document.getElementById("fab-toggle");
 const contextMenuToggle = document.getElementById("context-menu-toggle");
+const shortcutsBtn = document.getElementById("shortcuts-btn");
 const statusEl = document.getElementById("status");
 
 let statusHideTimer = null;
@@ -29,6 +30,13 @@ fabToggle.addEventListener("change", async () => {
 contextMenuToggle.addEventListener("change", async () => {
   await saveSettings({ contextMenuEnabled: contextMenuToggle.checked });
   showSaved();
+});
+
+// chrome://extensions/shortcuts can't be linked to with a plain <a href>;
+// Chrome only allows navigating there from an explicit extension action
+// like this, via the tabs API.
+shortcutsBtn.addEventListener("click", () => {
+  chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
 document.addEventListener("DOMContentLoaded", load);

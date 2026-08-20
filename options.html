@@ -105,6 +105,27 @@
     .switch input:checked + .track + .thumb { transform: translateX(18px); }
     .switch input:focus-visible + .track { outline: 2px solid var(--accent-dark); outline-offset: 2px; }
 
+    code {
+      background: #eef2ff;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 11.5px;
+    }
+    .action-btn {
+      flex: none;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .action-btn:hover { background: var(--accent); color: #fff; }
+
     #status {
       font-size: 12px;
       color: var(--success);
@@ -136,7 +157,7 @@
     </div>
     <div>
       <h1>Read Later — Options</h1>
-      <p>Choose which quick-save entry points show up while you browse.</p>
+      <p>Choose which quick-save entry points show up while you browse, and manage the keyboard shortcut.</p>
     </div>
   </header>
 
@@ -164,6 +185,19 @@
       <span class="track"></span>
       <span class="thumb"></span>
     </label>
+  </div>
+
+  <h2>Keyboard shortcut</h2>
+
+  <div class="setting-row">
+    <div class="text">
+      <div class="title">Save shortcut</div>
+      <div class="desc">
+        Default is <code>Ctrl+Shift+S</code> (<code>MacCtrl+Shift+S</code> on Mac) — instantly saves the active tab.
+        View or change it in Chrome's own shortcut manager.
+      </div>
+    </div>
+    <button id="shortcuts-btn" type="button" class="action-btn">Manage shortcuts</button>
   </div>
 
   <div id="status"></div>
