@@ -231,3 +231,60 @@ export async function saveSettings(changes) {
   await chrome.storage.sync.set({ [SETTINGS_KEY]: next });
   return next;
 }
+
+/**
+ * Bulk-imports items (from an export of this extension, or a Pocket-style
+ * CSV export), deduping by URL against what's already saved. Unlike calling
+ * addToReadingList in a loop, this does a single chrome.storage.sync.set
+ * for the whole batch — a large import (hundreds of items) done one write
+ * per item would risk tripping sync's MAX_WRITE_OPERATIONS_PER_MINUTE.
+ * @param {Array<{ url?: string, title?: string, favIconUrl?: string, addedAt?: number, readStatus?: boolean }>} rawItems
+ * @returns {Promise<{ added: number, skipped: number, total: number }>}
+ */
+export async function importReadingListItems(rawItems) {
+  const ids = await getIndex();
+  const existingItems = await getItemsByIds(ids);
+  const seenUrls = new Set(existingItems.map((item) => normalizeUrl(item.url)));
+
+  const newIds = [...ids];
+  const writes = {};
+  let added = 0;
+  let skipped = 0;
+
+  for (const raw of rawItems) {
+    if (!raw?.url || !/^https?:/i.test(raw.url)) {
+      skipped++;
+      continue;
+    }
+    const key = normalizeUrl(raw.url);
+    if (seenUrls.has(key)) {
+      skipped++;
+      continue;
+    }
+
+    const item = {
+      id: crypto.randomUUID(),
+      url: raw.url,
+      title: (typeof raw.title === "string" && raw.title.trim()) || raw.url,
+      favIconUrl: typeof raw.favIconUrl === "string" ? raw.favIconUrl : "",
+      addedAt: Number.isFinite(raw.addedAt) ? raw.addedAt : Date.now(),
+      readStatus: Boolean(raw.readStatus),
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(item)).length;
+    if (bytes > SYNC_QUOTA_BYTES_PER_ITEM) {
+      item.favIconUrl = "";
+    }
+
+    writes[itemKey(item.id)] = item;
+    newIds.push(item.id);
+    seenUrls.add(key);
+    added++;
+  }
+
+  if (added > 0) {
+    writes[INDEX_KEY] = newIds;
+    await chrome.storage.sync.set(writes);
+  }
+
+  return { added, skipped, total: rawItems.length };
+}

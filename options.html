@@ -136,6 +136,19 @@
     }
     #status.is-visible { opacity: 1; }
 
+    #import-status {
+      display: none;
+      font-size: 12px;
+      color: var(--fg);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin: -2px 0 10px;
+    }
+    #import-status.is-visible { display: block; }
+    #import-status.is-error { color: #991b1b; background: #fee2e2; border-color: #fecaca; }
+
     footer {
       margin-top: 28px;
       padding-top: 14px;
@@ -199,6 +212,27 @@
     </div>
     <button id="shortcuts-btn" type="button" class="action-btn">Manage shortcuts</button>
   </div>
+
+  <h2>Your data</h2>
+
+  <div class="setting-row">
+    <div class="text">
+      <div class="title">Export your reading list</div>
+      <div class="desc">Download everything you've saved as a JSON file — useful as a backup, or to move to another browser.</div>
+    </div>
+    <button id="export-btn" type="button" class="action-btn">Export as JSON</button>
+  </div>
+
+  <div class="setting-row">
+    <div class="text">
+      <div class="title">Import a reading list</div>
+      <div class="desc">Restore from a previous export, or import a Pocket CSV export. Duplicate URLs are skipped automatically.</div>
+    </div>
+    <label class="action-btn" for="import-input">Choose file…</label>
+    <input id="import-input" type="file" accept=".json,.csv,application/json,text/csv" hidden />
+  </div>
+
+  <div id="import-status"></div>
 
   <div id="status"></div>
 
