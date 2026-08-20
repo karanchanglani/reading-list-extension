@@ -4,10 +4,11 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 
 ## Features
 
-- One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, and delete
+- One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
 - Keyboard shortcut (`Ctrl+Shift+S` on every platform) for instant saving, with an on-page toast confirmation
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
-- A floating save button injected on every `http`/`https` page, reflecting the page's real saved state (not saved / just saved / already saved / error)
+- A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
+- An options page to turn the floating button or the right-click menu off individually, applied live to already-open tabs
 - Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
 - Duplicate protection — the same URL is never saved twice
 - Each article is stored under its own `chrome.storage.sync` key (with a small index key for ordering) rather than one combined blob, so the list isn't capped by sync's small per-key size limit
@@ -74,19 +75,16 @@ The floating save button (below) shows this same feedback directly on the button
 
 ### 5. The floating save button (on-page)
 
-Every regular web page gets a small circular button in the bottom-right corner of the screen. It reflects the actual saved state of that page:
+Every regular web page gets a small circular button in the bottom-right corner of the screen. It always reflects the article's real saved/read state — checked automatically on page load, and kept live in sync if you save or mark it read from somewhere else (the keyboard shortcut, the right-click menu, or the Manager) while the tab stays open.
 
-| State | Look | When |
+| Gesture | State / color | What happens |
 |---|---|---|
-| Not saved | Indigo, book-plus icon, clickable | Default — click it to save the page. |
-| Hover | Brightens and grows slightly | Just a hover effect on the "not saved" state. |
-| Just saved | Green checkmark, disabled | Right after you click it and the save succeeds. |
-| Already saved | Amber checkmark, disabled | Automatically shown on page load if that article is already on your list — or if you click and it turns out to already be there. |
-| Error | Red alert icon | Something went wrong. Reverts to clickable after ~1.5s so you can retry. |
+| Click | Indigo → orange | Saves the page. Turns orange immediately (saved, unread). |
+| Double-click | Orange ↔ spring green `#00FF7F` | Toggles read/unread, from either color, in either direction. |
+| Hold for 2.5 seconds | Orange or green → indigo | Removes the page from your list. A radial ring sweeps around the button as you hold; release early and nothing happens. |
+| *(automatic)* | Red alert icon, briefly | Something went wrong — reverts to the correct state on its own after ~1.5s so you can retry. |
 
-Once a button shows green or amber, it's locked — clicking it again does nothing, since the article is already saved either way.
-
-> **Not seeing it?** A handful of sites use floating chat widgets or cookie banners in the same bottom-right corner, which can occasionally overlap the button. It's still there — try scrolling, or use the toolbar icon / keyboard shortcut instead.
+> **Not seeing it?** A handful of sites use floating chat widgets or cookie banners in the same bottom-right corner, which can occasionally overlap the button. It's still there — try scrolling, or use the toolbar icon / keyboard shortcut instead. It can also be turned off entirely in Options (see below).
 
 ### 6. The Reading List Manager
 
@@ -95,34 +93,47 @@ Open it by clicking the toolbar icon (or right-clicking it → **Open Reading Li
 - **Search bar** — filter your saved articles by title as you type.
 - **Favicon + title** — click anywhere on an item to open it in a new tab.
 - **Domain name** — shown under the title so you can see the source at a glance.
+- **Grip icon** — drag an item to manually reorder your list. Only works while the search box is empty (dragging a filtered subset wouldn't map cleanly onto the full list's order).
 - **Checkmark button** — toggles an item between read and unread. Read items get a strikethrough title and a dimmed favicon.
 - **Trash button** — removes the item from your list.
 
 If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
 
-### 7. Duplicate protection & syncing
+### 7. Options — choose your entry points
+
+Open Options by clicking the gear icon in the popup (next to "Save Current Page"), or by right-clicking the toolbar icon → **Options**.
+
+- **On-page floating save button** — turn off if you don't want the bubble appearing on every page.
+- **Right-click "Add to Reading List" menu** — turn off to remove that item from the page/link right-click menu.
+
+Changes apply immediately, even to tabs already open — no reload needed. The toolbar icon, the keyboard shortcut, and right-click → *Open Reading List Manager* are unaffected by these toggles; they're always available.
+
+### 8. Duplicate protection & syncing
 
 - Saving the same URL twice won't create a second entry — the toolbar badge, the on-page toast, and the floating button all show an amber "already added" indicator instead of a green one.
 - Your reading list is stored with Chrome's built-in sync storage, so it follows you to any other computer signed into the same Google account with Chrome sync turned on.
 - Each article is stored separately under the hood (rather than one big combined record), so one long title or an unusually large favicon on a single article won't affect any of your other saved articles.
 
-### 8. Quick reference
+### 9. Quick reference
 
 | I want to... | Do this |
 |---|---|
 | Save the page I'm on right now | Press `Ctrl+Shift+S`, click the floating button on the page, or open the toolbar popup and click *Save Current Page* |
 | Save a link without opening it | Right-click the link → *Add link/page to Reading List* |
 | View / search my saved articles | Click the toolbar icon (or right-click it → *Open Reading List Manager* for a separate window) |
-| Mark something as read | Click the checkmark next to it in the manager |
-| Remove a saved article | Click the trash icon next to it in the manager |
+| Mark something as read | Double-click the floating button on the page, or click the checkmark in the manager |
+| Remove a saved article | Hold the floating button for 2.5 seconds, or click the trash icon in the manager |
+| Reorder my saved articles | Drag an item by its grip icon in the manager (search box must be empty) |
+| Turn off the floating button or right-click menu | Open Options — gear icon in the popup, or right-click the toolbar icon → *Options* |
 
 ## Project structure
 
 ```
-manifest.json     — Manifest V3 config: permissions, action, commands, content_scripts
+manifest.json     — Manifest V3 config: permissions, action, commands, content_scripts, options_ui
 background.js     — service worker: badge, context menus, keyboard command, message handling
-storage.js         — chrome.storage.sync data layer (shared by background.js and popup.js)
+storage.js         — chrome.storage.sync data layer (shared by background.js, popup.js, options.js)
 popup.html/js      — the reading list popup / standalone manager window
+options.html/js    — the options page (toggle the floating button / right-click menu)
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
 icons/             — toolbar and extension icons
 ```
