@@ -12,8 +12,19 @@
 // only thing that has to fit in 8KB is a single article's metadata.
 
 export const INDEX_KEY = "readingListIndex";
+export const SETTINGS_KEY = "settings";
 const ITEM_KEY_PREFIX = "item_";
 const LEGACY_STORAGE_KEY = "readingList"; // old single-blob format
+
+/**
+ * @typedef {Object} Settings
+ * @property {boolean} fabEnabled - show the on-page floating save button
+ * @property {boolean} contextMenuEnabled - show "Add link/page to Reading List" on right-click
+ */
+export const DEFAULT_SETTINGS = {
+  fabEnabled: true,
+  contextMenuEnabled: true,
+};
 
 // chrome.storage.sync hard limits (see chrome.storage.sync.QUOTA_BYTES*).
 // A single oversized item (e.g. a data: URL favicon) can still blow the
@@ -184,4 +195,39 @@ export async function updateReadingListItem(id, changes) {
 
   await chrome.storage.sync.set({ [itemKey(id)]: { ...existing, ...changes } });
   return getItemsByIds(ids);
+}
+
+/**
+ * Persists a manually-reordered list (e.g. after a drag-and-drop reorder in
+ * the popup) by rewriting the index key with the new id order. Any id the
+ * caller didn't include — e.g. an item another synced device added mid-drag
+ * — is appended at the end rather than silently dropped.
+ * @param {string[]} orderedIds
+ * @returns {Promise<ReadingListItem[]>}
+ */
+export async function reorderReadingList(orderedIds) {
+  const currentIds = await getIndex();
+  const currentSet = new Set(currentIds);
+  const deduped = orderedIds.filter((id) => currentSet.has(id));
+  const missing = currentIds.filter((id) => !deduped.includes(id));
+  const newIds = [...deduped, ...missing];
+
+  await chrome.storage.sync.set({ [INDEX_KEY]: newIds });
+  return getItemsByIds(newIds);
+}
+
+/** @returns {Promise<Settings>} */
+export async function getSettings() {
+  const result = await chrome.storage.sync.get(SETTINGS_KEY);
+  return { ...DEFAULT_SETTINGS, ...(result[SETTINGS_KEY] || {}) };
+}
+
+/**
+ * @param {Partial<Settings>} changes
+ * @returns {Promise<Settings>}
+ */
+export async function saveSettings(changes) {
+  const next = { ...(await getSettings()), ...changes };
+  await chrome.storage.sync.set({ [SETTINGS_KEY]: next });
+  return next;
 }

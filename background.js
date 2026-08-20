@@ -1,4 +1,12 @@
-import { INDEX_KEY, getReadingList, addToReadingList, findByUrl, migrateLegacyStorage } from "./storage.js";
+import {
+  INDEX_KEY,
+  SETTINGS_KEY,
+  getReadingList,
+  addToReadingList,
+  findByUrl,
+  migrateLegacyStorage,
+  getSettings,
+} from "./storage.js";
 
 const BADGE_IDLE_COLOR = "#4f46e5"; // indigo — normal unread count
 const BADGE_SUCCESS_COLOR = "#16a34a"; // green — item added
@@ -110,13 +118,18 @@ function createMenuItem(options) {
   });
 }
 
-function setupContextMenu() {
+async function setupContextMenu() {
+  const settings = await getSettings();
   chrome.contextMenus.removeAll(() => {
-    createMenuItem({
-      id: ADD_MENU_ID,
-      title: "Add link/page to Reading List",
-      contexts: ["page", "link"],
-    });
+    if (settings.contextMenuEnabled) {
+      createMenuItem({
+        id: ADD_MENU_ID,
+        title: "Add link/page to Reading List",
+        contexts: ["page", "link"],
+      });
+    }
+    // Not gated by the same toggle — this opens the manager from the
+    // toolbar icon itself, a separate feature from the page/link menu.
     createMenuItem({
       id: MANAGER_MENU_ID,
       title: "Open Reading List Manager",
@@ -155,8 +168,16 @@ chrome.runtime.onStartup.addListener(() => {
 // Keep the badge count in sync if the list changes from any source
 // (popup edits, another synced device, etc.) while we're not mid-flash.
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync" && changes[INDEX_KEY] && !activeFlashToken) {
+  if (areaName !== "sync") return;
+
+  if (changes[INDEX_KEY] && !activeFlashToken) {
     renderCountBadge();
+  }
+
+  // Options page (or another synced device) toggled a setting — re-apply
+  // the context menu immediately rather than waiting for the next reload.
+  if (changes[SETTINGS_KEY]) {
+    setupContextMenu();
   }
 });
 

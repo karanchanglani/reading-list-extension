@@ -4,6 +4,8 @@
 
   const ERROR_RESET_MS = 1500;
   const TOAST_MS = 2200;
+  const SETTINGS_KEY = "settings";
+  const DEFAULT_SETTINGS = { fabEnabled: true, contextMenuEnabled: true };
 
   const ICON_DEFAULT = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -25,62 +27,80 @@
       <circle cx="12" cy="16.5" r="1" style="fill:currentColor;stroke:none"></circle>
     </svg>`;
 
-  const fab = document.createElement("button");
-  fab.id = "read-later-fab";
-  fab.type = "button";
-  fab.innerHTML = ICON_DEFAULT;
-  setLabel("Save this page to Read Later");
-
+  /** @type {HTMLButtonElement | null} */
+  let fab = null;
   let resetTimer = null;
 
-  fab.addEventListener("click", () => {
-    if (fab.disabled || fab.classList.contains("rl-busy")) return;
+  function mountFab() {
+    if (fab) return;
 
-    fab.classList.add("rl-busy");
-    if (resetTimer) clearTimeout(resetTimer);
+    fab = document.createElement("button");
+    fab.id = "read-later-fab";
+    fab.type = "button";
+    fab.innerHTML = ICON_DEFAULT;
+    setLabel("Save this page to Read Later");
 
-    chrome.runtime.sendMessage(
-      {
-        action: "ADD_TO_READING_LIST",
-        payload: {
-          url: location.href,
-          title: document.title,
-          favIconUrl: getFaviconUrl(),
+    fab.addEventListener("click", () => {
+      if (fab.disabled || fab.classList.contains("rl-busy")) return;
+
+      fab.classList.add("rl-busy");
+      if (resetTimer) clearTimeout(resetTimer);
+
+      chrome.runtime.sendMessage(
+        {
+          action: "ADD_TO_READING_LIST",
+          payload: {
+            url: location.href,
+            title: document.title,
+            favIconUrl: getFaviconUrl(),
+          },
         },
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          // Most commonly: the extension was reloaded/updated and this
-          // content script's connection to the background worker is stale.
-          showTransientError("Couldn't reach Read Later — try refreshing the page.");
-          return;
+        (response) => {
+          if (chrome.runtime.lastError) {
+            // Most commonly: the extension was reloaded/updated and this
+            // content script's connection to the background worker is stale.
+            showTransientError("Couldn't reach Read Later — try refreshing the page.");
+            return;
+          }
+          if (response?.ok) {
+            setSavedState(response.added ? "new" : "existing");
+          } else {
+            showTransientError(response?.error || "Couldn't save this page.");
+          }
         }
-        if (response?.ok) {
-          setSavedState(response.added ? "new" : "existing");
-        } else {
-          showTransientError(response?.error || "Couldn't save this page.");
-        }
-      }
-    );
-  });
+      );
+    });
 
-  document.documentElement.appendChild(fab);
+    document.documentElement.appendChild(fab);
 
-  // Find out up front whether this page is already saved, so the button
-  // renders disabled from the start instead of only after a wasted click.
-  chrome.runtime.sendMessage({ action: "CHECK_IS_SAVED", url: location.href }, (response) => {
-    if (chrome.runtime.lastError) return; // background not reachable — leave it enabled
-    if (response?.ok && response.saved) setSavedState("existing");
-  });
+    // Find out up front whether this page is already saved, so the button
+    // renders disabled from the start instead of only after a wasted click.
+    chrome.runtime.sendMessage({ action: "CHECK_IS_SAVED", url: location.href }, (response) => {
+      if (chrome.runtime.lastError) return; // background not reachable — leave it enabled
+      if (response?.ok && response.saved) setSavedState("existing");
+    });
+  }
+
+  function unmountFab() {
+    if (!fab) return;
+    if (resetTimer) {
+      clearTimeout(resetTimer);
+      resetTimer = null;
+    }
+    fab.remove();
+    fab = null;
+  }
 
   /**
-   * Locks (or unlocks) the button into a permanent state.
+   * Locks (or unlocks) the button into a permanent state. No-ops if the
+   * button isn't currently mounted (the floating button setting is off).
    * @param {false | "new" | "existing"} state
    *   false — not saved, normal clickable button.
    *   "new" — just saved by this click (green).
    *   "existing" — was already on the list before this (amber).
    */
   function setSavedState(state) {
+    if (!fab) return;
     if (resetTimer) {
       clearTimeout(resetTimer);
       resetTimer = null;
@@ -106,6 +126,7 @@
 
   /** Shows a red error state briefly, then returns to the normal clickable button. */
   function showTransientError(message) {
+    if (!fab) return;
     fab.classList.remove("rl-saved", "rl-already-saved");
     fab.disabled = false;
     fab.classList.add("rl-error");
@@ -113,6 +134,7 @@
     setLabel(message);
 
     resetTimer = setTimeout(() => {
+      if (!fab) return;
       fab.classList.remove("rl-error", "rl-busy");
       fab.innerHTML = ICON_DEFAULT;
       setLabel("Save this page to Read Later");
@@ -162,5 +184,23 @@
     showToast(message.text, message.kind);
     if (message.kind === "saved") setSavedState("new");
     else if (message.kind === "info") setSavedState("existing");
+  });
+
+  // Respect the "on-page floating save button" option, and react live if
+  // it's toggled from the options page while this tab stays open.
+  chrome.storage.sync.get(SETTINGS_KEY, (result) => {
+    if (chrome.runtime.lastError) {
+      mountFab(); // couldn't read settings — default to on
+      return;
+    }
+    const settings = { ...DEFAULT_SETTINGS, ...(result[SETTINGS_KEY] || {}) };
+    if (settings.fabEnabled) mountFab();
+  });
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "sync" || !changes[SETTINGS_KEY]) return;
+    const settings = { ...DEFAULT_SETTINGS, ...(changes[SETTINGS_KEY].newValue || {}) };
+    if (settings.fabEnabled) mountFab();
+    else unmountFab();
   });
 })();

@@ -1,4 +1,10 @@
-import { getReadingList, removeFromReadingList, updateReadingListItem, findByUrl } from "./storage.js";
+import {
+  getReadingList,
+  removeFromReadingList,
+  updateReadingListItem,
+  reorderReadingList,
+  findByUrl,
+} from "./storage.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -11,6 +17,13 @@ const ICON_SHAPES = {
     '<rect x="6" y="6" width="12" height="15" rx="1"></rect>' +
     '<line x1="10" y1="10" x2="10" y2="18"></line>' +
     '<line x1="14" y1="10" x2="14" y2="18"></line>',
+  grip:
+    '<circle cx="9" cy="6" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
+    '<circle cx="9" cy="12" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
+    '<circle cx="9" cy="18" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
+    '<circle cx="15" cy="6" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
+    '<circle cx="15" cy="12" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
+    '<circle cx="15" cy="18" r="1.3" style="fill:currentColor;stroke:none"></circle>',
 };
 
 function createIcon(name) {
@@ -22,6 +35,7 @@ function createIcon(name) {
   return svg;
 }
 
+const optionsBtn = document.getElementById("options-btn");
 const saveBtn = document.getElementById("save-btn");
 const saveBtnLabel = document.getElementById("save-btn-label");
 const statusEl = document.getElementById("status");
@@ -62,6 +76,9 @@ function getFilteredItems() {
 function renderList() {
   const query = searchInput.value.trim();
   const items = getFilteredItems();
+  // Reordering a filtered subset doesn't map cleanly onto the full list's
+  // order, so dragging is only enabled when the whole list is showing.
+  const reorderable = !query;
 
   listEl.innerHTML = "";
   emptyStateEl.hidden = allItems.length > 0;
@@ -70,7 +87,28 @@ function renderList() {
   for (const item of items) {
     const li = document.createElement("li");
     li.title = item.url;
+    li.dataset.id = item.id;
     li.classList.toggle("is-read", Boolean(item.readStatus));
+    li.draggable = reorderable;
+    if (reorderable) {
+      li.addEventListener("dragstart", (event) => {
+        if (event.target.closest("button")) {
+          event.preventDefault();
+          return;
+        }
+        li.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", item.id);
+      });
+      li.addEventListener("dragend", () => {
+        li.classList.remove("dragging");
+        void persistDomOrder();
+      });
+    }
+
+    const grip = document.createElement("span");
+    grip.className = "grip";
+    grip.appendChild(createIcon("grip"));
 
     const favicon = document.createElement("img");
     favicon.className = "favicon";
@@ -115,9 +153,32 @@ function renderList() {
       chrome.tabs.create({ url: item.url });
     });
 
-    li.append(favicon, info, readBtn, removeBtn);
+    li.append(grip, favicon, info, readBtn, removeBtn);
     listEl.appendChild(li);
   }
+}
+
+/** Returns the `<li>` the dragged element should be inserted before, based on cursor y. */
+function getDragAfterElement(container, y) {
+  const candidates = [...container.querySelectorAll("li:not(.dragging)")];
+  return candidates.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      }
+      return closest;
+    },
+    { offset: Number.NEGATIVE_INFINITY, element: null }
+  ).element;
+}
+
+/** Reads the current DOM order of `<li>`s and saves it as the new list order. */
+async function persistDomOrder() {
+  const newIds = [...listEl.children].map((child) => child.dataset.id);
+  allItems = await reorderReadingList(newIds);
+  renderList();
 }
 
 function updateSaveButtonState() {
@@ -188,6 +249,10 @@ async function toggleRead(id, readStatus) {
   renderList();
 }
 
+optionsBtn.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
+
 saveBtn.addEventListener("click", saveCurrentPage);
 
 searchInput.addEventListener("input", () => {
@@ -200,6 +265,26 @@ searchClearBtn.addEventListener("click", () => {
   searchClearBtn.hidden = true;
   renderList();
   searchInput.focus();
+});
+
+// Live-reorders the DOM as an item is dragged over the list; the actual
+// storage write happens once, in the dragged item's "dragend" handler.
+listEl.addEventListener("dragover", (event) => {
+  const dragging = listEl.querySelector("li.dragging");
+  if (!dragging) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+
+  const afterElement = getDragAfterElement(listEl, event.clientY);
+  if (afterElement == null) {
+    listEl.appendChild(dragging);
+  } else {
+    listEl.insertBefore(dragging, afterElement);
+  }
+});
+
+listEl.addEventListener("drop", (event) => {
+  if (listEl.querySelector("li.dragging")) event.preventDefault();
 });
 
 document.addEventListener("DOMContentLoaded", () => {

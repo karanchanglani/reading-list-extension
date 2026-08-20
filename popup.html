@@ -50,6 +50,26 @@
       font-weight: 600;
       white-space: nowrap;
     }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
+    }
+    #options-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+    }
+    #options-btn:hover { color: var(--fg); background: rgba(79, 70, 229, 0.08); }
+    #options-btn svg.icon { width: 15px; height: 15px; }
     #save-btn {
       display: flex;
       align-items: center;
@@ -129,6 +149,21 @@
       cursor: pointer;
     }
     #list li:hover { background: rgba(79, 70, 229, 0.06); }
+    #list li[draggable="true"] { cursor: grab; }
+    #list li.dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+      background: rgba(79, 70, 229, 0.06);
+    }
+    #list .grip {
+      flex: none;
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      opacity: 0.5;
+    }
+    #list li[draggable="true"]:hover .grip { opacity: 1; }
+    #list li:not([draggable="true"]) .grip { opacity: 0.15; }
     #list img.favicon {
       width: 16px;
       height: 16px;
@@ -190,18 +225,30 @@
 <body>
   <header>
     <h1>Read Later</h1>
-    <button id="save-btn" type="button" title="Save the current page">
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="4" width="8" height="16" rx="1"></rect>
-        <rect x="13" y="4" width="8" height="16" rx="1"></rect>
-        <line x1="12" y1="4" x2="12" y2="20"></line>
-      </svg>
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-        <line x1="12" y1="6" x2="12" y2="18"></line>
-        <line x1="6" y1="12" x2="18" y2="12"></line>
-      </svg>
-      <span id="save-btn-label">Save Current Page</span>
-    </button>
+    <div class="header-actions">
+      <button id="options-btn" type="button" title="Options">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <line x1="4" y1="6" x2="20" y2="6"></line>
+          <circle cx="9" cy="6" r="2" style="fill:currentColor;stroke:none"></circle>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <circle cx="15" cy="12" r="2" style="fill:currentColor;stroke:none"></circle>
+          <line x1="4" y1="18" x2="20" y2="18"></line>
+          <circle cx="7" cy="18" r="2" style="fill:currentColor;stroke:none"></circle>
+        </svg>
+      </button>
+      <button id="save-btn" type="button" title="Save the current page">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4" width="8" height="16" rx="1"></rect>
+          <rect x="13" y="4" width="8" height="16" rx="1"></rect>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+        </svg>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <line x1="12" y1="6" x2="12" y2="18"></line>
+          <line x1="6" y1="12" x2="18" y2="12"></line>
+        </svg>
+        <span id="save-btn-label">Save Current Page</span>
+      </button>
+    </div>
   </header>
 
   <div id="status"></div>
