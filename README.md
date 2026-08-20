@@ -1,345 +1,130 @@
 # Read Later
 
-A Chrome extension (Manifest V3) for saving articles to a reading list without leaving the page you're on. Save from the toolbar popup, a keyboard shortcut, a right-click menu, or a floating button injected on every page — then browse, search, mark items read, and delete them from a dedicated reading list manager. The list is backed by `chrome.storage.sync`, so it follows you to any other computer signed into the same Google account with Chrome sync turned on.
-
-## Table of contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [How to use it](#how-to-use-it)
-- [Implementation](#implementation)
-  - [1. Manifest V3 configuration](#1-manifest-v3-configuration)
-  - [2. Storage layer — dodging the sync quota trap](#2-storage-layer--dodging-the-sync-quota-trap)
-  - [3. Background service worker](#3-background-service-worker)
-  - [4. Content script — the floating action button](#4-content-script--the-floating-action-button)
-  - [5. Popup — search, list, and the manager window](#5-popup--search-list-and-the-manager-window)
-- [Project structure](#project-structure)
-- [Permissions used](#permissions-used)
-- [License](#license)
+A Chrome extension (Manifest V3) for saving articles to a reading list without leaving the page you're on. Save from the toolbar popup, a keyboard shortcut, a right-click menu, or a floating button that appears on every page — then browse, search, mark items read, and delete them from a dedicated reading list manager. Your list is stored with `chrome.storage.sync`, so it follows you to any other computer signed into the same Google account with Chrome sync turned on.
 
 ## Features
 
-- **Toolbar popup** — click the icon to see your full list: live search-by-title, mark as read/unread, delete, and a "Save Current Page" button
-- **Keyboard shortcut** — `Ctrl+Shift+S` on every platform (Windows, Linux, ChromeOS, Mac) saves the active tab instantly, with an on-page toast confirmation
-- **Right-click context menu** — "Add link/page to Reading List" works on the page itself *or* on a specific link, without navigating to it
-- **Right-click the toolbar icon** → "Open Reading List Manager" opens the same list in a standalone window instead of an anchored popup
-- **Floating save button** injected on every `http`/`https` page, with a real state machine: not-saved → just-saved (green) / already-saved (amber) → locked, so it always reflects whether *this* page is actually on your list
-- **On-page toast notifications** for the keyboard shortcut and right-click save (the FAB shows its own inline feedback instead)
-- **Toolbar badge feedback** — green `SAVED`, amber `•` for duplicates, red `!` for errors, otherwise your saved-item count
-- **Duplicate protection** — URLs are normalized (trailing slash / `#fragment` stripped) before comparing, so the same article is never saved twice
-- **Per-item sync storage** — each article lives under its own `chrome.storage.sync` key instead of one combined blob, avoiding the ~8KB per-key quota that a single-array approach would hit
-- **One-time install nudge** via `chrome.notifications` reminding you to pin the extension (Chrome doesn't let extensions pin themselves)
-- **MIT licensed**
+- One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, and delete
+- Keyboard shortcut (`Ctrl+Shift+S` on every platform) for instant saving, with an on-page toast confirmation
+- Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
+- A floating save button injected on every `http`/`https` page, reflecting the page's real saved state (not saved / just saved / already saved / error)
+- Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
+- Duplicate protection — the same URL is never saved twice
+- Each article is stored under its own `chrome.storage.sync` key (with a small index key for ordering) rather than one combined blob, so the list isn't capped by sync's small per-key size limit
 
 ## Installation
 
-Not on the Chrome Web Store — load it as an unpacked developer extension:
+This extension isn't published on the Chrome Web Store — load it as an unpacked developer extension:
 
-1. Clone this repo (or download it as a ZIP and unzip it).
-2. Open `chrome://extensions` in Chrome.
-3. Turn on **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select the project folder.
-5. The book-plus icon appears in the toolbar — click the puzzle-piece icon and pin it for one-click access.
+1. Open `chrome://extensions` in Chrome.
+2. Turn on **Developer mode** (top-right toggle).
+3. Click **Load unpacked** and select this project folder.
+4. The book-plus icon appears in Chrome's toolbar (it may be tucked inside the puzzle-piece "Extensions" menu at first — click the puzzle piece and pin it for one-click access).
 
-## How to use it
+## Usage guide
 
-### The toolbar icon
+### 1. The toolbar icon — view your list
+
+Click the book-plus icon next to the address bar to open your reading list in a popup — search it, mark items read, delete them, or save the page you're currently on.
 
 | Action | What happens |
 |---|---|
-| **Left-click** | Opens the reading list popup — search, your saved articles, and a **Save Current Page** button. |
-| **Right-click** | Chrome's normal icon menu, plus **"Open Reading List Manager"** — opens the same list in its own window. |
+| **Left-click** | Opens the reading list popup: a search bar, your saved articles, and a **"Save Current Page"** button up top. |
+| **Right-click** | Opens Chrome's normal icon menu, plus an added item: **"Open Reading List Manager."** Click it to open that same list in its own standalone window instead — handy if you want to keep it open on screen while you browse, rather than as a popup that closes when it loses focus. |
 
-### Keyboard shortcut
+**What the badge means** — saving from the keyboard shortcut, the right-click menu, the popup's Save button, or the on-page floating button all flash the toolbar badge briefly:
 
-**`Ctrl+Shift+S`** saves the current tab instantly. This deliberately avoids the letter **R** — `Shift+Ctrl/Cmd+R` is Chrome's hard-refresh shortcut on every platform, so an extension can never reliably claim it. Reassign at `chrome://extensions/shortcuts` if it's taken by something else.
+| Badge | Color | Meaning |
+|---|---|---|
+| `SAVED` | Green | The page was just added to your reading list. |
+| `•` | Amber | That page was already on your list — nothing new was added. |
+| `!` | Red | Couldn't save this page (for example, a `chrome://` page rather than a normal website). |
+| `3` (count) | Indigo | The idle state — shows how many articles are currently saved. |
 
-### Right-click menu
+Each flash lasts a second or two, then the badge returns to your saved-item count automatically.
 
-Right-click a page or a link → **"Add link/page to Reading List."** On a link, it saves that link's URL without opening it.
+### 2. Keyboard shortcut
 
-### The floating save button
+Save the current tab without touching the mouse:
 
-Appears bottom-right on every page, and reflects the page's actual saved state:
+**`Ctrl+Shift+S`** — the same combo on Windows, Linux, ChromeOS, and Mac.
 
-| State | Look |
+This intentionally avoids the letter **R**: `Shift+Ctrl/Cmd+R` is Chrome's built-in hard-refresh shortcut on every platform, so an extension can never reliably use it. If `Ctrl+Shift+S` is claimed by something else on your machine, reassign it at `chrome://extensions/shortcuts`.
+
+You'll get both the toolbar badge flash *and* an on-page toast confirming the save.
+
+### 3. Right-click menu — save a page or a specific link
+
+Right-click anywhere on a page (or directly on a link) to see **"Add link/page to Reading List."**
+
+- Right-click empty space on a page → saves the page you're currently on.
+- Right-click a specific link → saves *that link's URL*, without navigating to it first.
+
+### 4. On-page toast notifications
+
+Saving via the keyboard shortcut or the right-click menu also pops up a small toast in the bottom-right corner of the page for about two seconds — useful if you're not looking at the toolbar:
+
+| Toast | Color | Meaning |
+|---|---|---|
+| "Article added!" | Green | Newly saved. |
+| "Already added" | Amber | It was already on your list. |
+| "Couldn't save this page" / connection error | Red | Something went wrong — try again. |
+
+The floating save button (below) shows this same feedback directly on the button itself instead of a separate toast.
+
+### 5. The floating save button (on-page)
+
+Every regular web page gets a small circular button in the bottom-right corner of the screen. It reflects the actual saved state of that page:
+
+| State | Look | When |
+|---|---|---|
+| Not saved | Indigo, book-plus icon, clickable | Default — click it to save the page. |
+| Hover | Brightens and grows slightly | Just a hover effect on the "not saved" state. |
+| Just saved | Green checkmark, disabled | Right after you click it and the save succeeds. |
+| Already saved | Amber checkmark, disabled | Automatically shown on page load if that article is already on your list — or if you click and it turns out to already be there. |
+| Error | Red alert icon | Something went wrong. Reverts to clickable after ~1.5s so you can retry. |
+
+Once a button shows green or amber, it's locked — clicking it again does nothing, since the article is already saved either way.
+
+> **Not seeing it?** A handful of sites use floating chat widgets or cookie banners in the same bottom-right corner, which can occasionally overlap the button. It's still there — try scrolling, or use the toolbar icon / keyboard shortcut instead.
+
+### 6. The Reading List Manager
+
+Open it by clicking the toolbar icon (or right-clicking it → **Open Reading List Manager** for a standalone window instead of a popup). This is where you browse, search, and manage everything you've saved.
+
+- **Search bar** — filter your saved articles by title as you type.
+- **Favicon + title** — click anywhere on an item to open it in a new tab.
+- **Domain name** — shown under the title so you can see the source at a glance.
+- **Checkmark button** — toggles an item between read and unread. Read items get a strikethrough title and a dimmed favicon.
+- **Trash button** — removes the item from your list.
+
+If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
+
+### 7. Duplicate protection & syncing
+
+- Saving the same URL twice won't create a second entry — the toolbar badge, the on-page toast, and the floating button all show an amber "already added" indicator instead of a green one.
+- Your reading list is stored with Chrome's built-in sync storage, so it follows you to any other computer signed into the same Google account with Chrome sync turned on.
+- Each article is stored separately under the hood (rather than one big combined record), so one long title or an unusually large favicon on a single article won't affect any of your other saved articles.
+
+### 8. Quick reference
+
+| I want to... | Do this |
 |---|---|
-| Not saved | Indigo, book-plus icon, clickable |
-| Just saved | Green checkmark, locked |
-| Already saved | Amber checkmark, locked |
-| Error | Red alert icon, auto-resets after ~1.5s |
-
-### The Reading List Manager
-
-Search by title, click an item to open it in a new tab, toggle read/unread, or delete it.
-
-## Implementation
-
-### 1. Manifest V3 configuration
-
-Permissions, the toolbar popup, the keyboard command, and the content script that gets injected on every page:
-
-```json
-{
-  "manifest_version": 3,
-  "name": "Read Later",
-  "permissions": ["storage", "activeTab", "tabs", "contextMenus", "notifications"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "commands": {
-    "quick-save": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "MacCtrl+Shift+S"
-      },
-      "description": "Save the current page to your Read Later list"
-    }
-  },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "css": ["content.css"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ]
-}
-```
-
-`"type": "module"` on the service worker lets `background.js` `import` the storage layer as an ES module. `MacCtrl+Shift+S` (not `Command+Shift+S`) keeps the shortcut on the literal physical Control key on Mac too, matching Windows/Linux exactly.
-
-### 2. Storage layer — dodging the sync quota trap
-
-`chrome.storage.sync` caps **any single key** at ~8KB (`QUOTA_BYTES_PER_ITEM`). An early version stored the whole list as one JSON array under one key — so the real capacity was "however many articles fit in 8KB total," and every save silently started failing once the array crossed that line. The fix: one `chrome.storage.sync` key per article, plus a small index key for ordering, so the only thing that ever has to fit in 8KB is a single article's metadata:
-
-```js
-export const INDEX_KEY = "readingListIndex";
-const ITEM_KEY_PREFIX = "item_";
-
-function itemKey(id) {
-  return `${ITEM_KEY_PREFIX}${id}`;
-}
-
-export async function addToReadingList(source) {
-  if (!source?.url || !/^https?:/i.test(source.url)) {
-    throw new Error("Only http(s) pages can be saved.");
-  }
-
-  const ids = await getIndex();
-  const existingItems = await getItemsByIds(ids);
-
-  const existing = findByUrl(existingItems, source.url);
-  if (existing) {
-    return { added: false, item: existing, list: existingItems };
-  }
-
-  const item = createReadingListItem(source);
-
-  await chrome.storage.sync.set({
-    [INDEX_KEY]: [item.id, ...ids],
-    [itemKey(item.id)]: item,
-  });
-
-  return { added: true, item, list: [item, ...existingItems] };
-}
-```
-
-A `migrateLegacyStorage()` function runs once on install/update to fan out anything still sitting in the old single-blob key into the new per-item format, so nothing already saved gets lost when upgrading.
-
-Duplicate detection normalizes the URL first (strips a trailing slash and any `#fragment`) so cosmetically different URLs for the same page still count as the same article:
-
-```js
-function normalizeUrl(url) {
-  try {
-    const parsed = new URL(url);
-    parsed.hash = "";
-    return parsed.toString().replace(/\/$/, "");
-  } catch {
-    return url;
-  }
-}
-
-export function findByUrl(items, url) {
-  const target = normalizeUrl(url);
-  return items.find((item) => normalizeUrl(item.url) === target);
-}
-```
-
-### 3. Background service worker
-
-**Badge flashing** — a token-based approach so overlapping flashes (e.g. a context-menu save firing right after a keyboard-shortcut save) can't clobber each other's revert-to-idle timer:
-
-```js
-let flashCounter = 0;
-let activeFlashToken = 0;
-
-function flashBadge(text, color, ms = BADGE_FLASH_MS) {
-  const token = ++flashCounter;
-  activeFlashToken = token;
-
-  chrome.action.setBadgeBackgroundColor({ color });
-  chrome.action.setBadgeText({ text });
-
-  setTimeout(() => {
-    if (activeFlashToken === token) {
-      activeFlashToken = 0;
-      renderCountBadge();
-    }
-  }, ms);
-}
-```
-
-**One shared save path** for every non-popup trigger (keyboard shortcut, right-click menu) — badge flash plus an in-page toast sent to the tab that triggered it:
-
-```js
-async function quickSave(source, tabId) {
-  try {
-    const { added } = await addToReadingList(source);
-    if (added) {
-      flashBadge(BADGE_SUCCESS_TEXT, BADGE_SUCCESS_COLOR);
-      notifyTab(tabId, "Article added!", "saved");
-    } else {
-      flashBadge("•", BADGE_INFO_COLOR);
-      notifyTab(tabId, "Already added", "info");
-    }
-  } catch (error) {
-    flashBadge("!", BADGE_ERROR_COLOR);
-    notifyTab(tabId, "Couldn't save this page", "error");
-  }
-}
-```
-
-**Context menus** register two items — one for right-clicking a page/link, one for right-clicking the toolbar icon itself (`contexts: ["action"]`):
-
-```js
-function setupContextMenu() {
-  chrome.contextMenus.removeAll(() => {
-    createMenuItem({
-      id: ADD_MENU_ID,
-      title: "Add link/page to Reading List",
-      contexts: ["page", "link"],
-    });
-    createMenuItem({
-      id: MANAGER_MENU_ID,
-      title: "Open Reading List Manager",
-      contexts: ["action"],
-    });
-  });
-}
-```
-
-**The keyboard command** reuses the tab Chrome hands it directly (Chrome 96+), falling back to a query only if that's missing:
-
-```js
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command !== QUICK_SAVE_COMMAND) return;
-
-  if (tab) {
-    quickSaveTab(tab);
-  } else {
-    chrome.tabs.query({ active: true, currentWindow: true }, ([activeTab]) => {
-      quickSaveTab(activeTab);
-    });
-  }
-});
-```
-
-**A `CHECK_IS_SAVED` message handler** lets the content script ask, on page load, whether the current URL is already on the list — this is what lets the floating button render disabled immediately instead of only after a wasted click:
-
-```js
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.action !== "CHECK_IS_SAVED") return false;
-
-  getReadingList()
-    .then((items) => {
-      sendResponse({ ok: true, saved: Boolean(findByUrl(items, message.url)) });
-    })
-    .catch((error) => sendResponse({ ok: false, error: error.message }));
-
-  return true; // keep the message channel open for the async response
-});
-```
-
-### 4. Content script — the floating action button
-
-The button is a small state machine with three locked states, driven from both its own click handler and messages from the background script:
-
-```js
-/**
- * @param {false | "new" | "existing"} state
- *   false     — not saved, normal clickable button
- *   "new"     — just saved by this click (green)
- *   "existing"— was already on the list before this (amber)
- */
-function setSavedState(state) {
-  fab.classList.remove("rl-busy", "rl-error", "rl-saved", "rl-already-saved");
-
-  if (state === "new") {
-    fab.classList.add("rl-saved");
-    fab.disabled = true;
-    fab.innerHTML = ICON_CHECK;
-    setLabel("Saved to Read Later!");
-  } else if (state === "existing") {
-    fab.classList.add("rl-already-saved");
-    fab.disabled = true;
-    fab.innerHTML = ICON_CHECK;
-    setLabel("Already in your Read Later list");
-  } else {
-    fab.disabled = false;
-    fab.innerHTML = ICON_DEFAULT;
-    setLabel("Save this page to Read Later");
-  }
-}
-
-// Checked once on load, so the button starts disabled if it's already saved.
-chrome.runtime.sendMessage({ action: "CHECK_IS_SAVED", url: location.href }, (response) => {
-  if (chrome.runtime.lastError) return;
-  if (response?.ok && response.saved) setSavedState("existing");
-});
-
-// Also flips state when a save happens elsewhere (keyboard shortcut, right-click menu).
-chrome.runtime.onMessage.addListener((message) => {
-  if (message?.action !== "SHOW_TOAST") return;
-  showToast(message.text, message.kind);
-  if (message.kind === "saved") setSavedState("new");
-  else if (message.kind === "info") setSavedState("existing");
-});
-```
-
-All of the button's icons (book-plus, checkmark, alert) are hand-authored inline SVG built from `rect`/`line`/`polyline` primitives — no icon library or external asset needed.
-
-### 5. Popup — search, list, and the manager window
-
-The same `popup.html`/`popup.js` serves two roles: the toolbar dropdown *and* the standalone "Reading List Manager" window (opened via `chrome.windows.create` from the right-click menu). Search is a simple client-side filter over the already-fetched list — no extra storage reads per keystroke:
-
-```js
-function getFilteredItems() {
-  const query = searchInput.value.trim().toLowerCase();
-  if (!query) return allItems;
-  return allItems.filter((item) => (item.title || "").toLowerCase().includes(query));
-}
-```
+| Save the page I'm on right now | Press `Ctrl+Shift+S`, click the floating button on the page, or open the toolbar popup and click *Save Current Page* |
+| Save a link without opening it | Right-click the link → *Add link/page to Reading List* |
+| View / search my saved articles | Click the toolbar icon (or right-click it → *Open Reading List Manager* for a separate window) |
+| Mark something as read | Click the checkmark next to it in the manager |
+| Remove a saved article | Click the trash icon next to it in the manager |
 
 ## Project structure
 
 ```
-manifest.json     Manifest V3 config: permissions, action, commands, content_scripts
-background.js     Service worker: badge, context menus, keyboard command, messaging
-storage.js         chrome.storage.sync data layer (shared by background.js and popup.js)
-popup.html/js      The reading list popup / standalone manager window
-content.js/css     The on-page floating save button + toast, injected on every http/https page
-icons/             Toolbar and extension icons
+manifest.json     — Manifest V3 config: permissions, action, commands, content_scripts
+background.js     — service worker: badge, context menus, keyboard command, message handling
+storage.js         — chrome.storage.sync data layer (shared by background.js and popup.js)
+popup.html/js      — the reading list popup / standalone manager window
+content.js/css     — the on-page floating save button and toast, injected on every http/https page
+icons/             — toolbar and extension icons
 ```
 
 ## Permissions used
@@ -349,7 +134,7 @@ icons/             Toolbar and extension icons
 | `storage` | Save the reading list via `chrome.storage.sync` |
 | `activeTab` / `tabs` | Read the current tab's URL, title, and favicon to save it |
 | `contextMenus` | The right-click "Add link/page" and "Open Reading List Manager" menu items |
-| `notifications` | A one-time nudge on install to pin the extension to the toolbar |
+| `notifications` | A one-time nudge on install to pin the extension to the toolbar (Chrome doesn't allow extensions to pin themselves) |
 
 ## License
 
