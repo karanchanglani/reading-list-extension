@@ -4,6 +4,7 @@
 
   const ERROR_RESET_MS = 1500;
   const TOAST_MS = 2200;
+  const HOLD_MS = 2500;
   const SETTINGS_KEY = "settings";
   const DEFAULT_SETTINGS = { fabEnabled: true, contextMenuEnabled: true };
 
@@ -29,7 +30,24 @@
 
   /** @type {HTMLButtonElement | null} */
   let fab = null;
+  /** @type {HTMLSpanElement | null} */
+  let iconEl = null;
+  /** @type {HTMLSpanElement | null} */
+  let holdRing = null;
   let resetTimer = null;
+
+  /** The id of the reading-list item for this URL, once known; null if not saved. */
+  let savedItemId = null;
+  let currentReadStatus = false;
+
+  /** Set while a hold-to-remove gesture is in progress; cancels it on early release. */
+  let cancelHold = null;
+  /** Set right when a hold completes, so the trailing "click" it also fires is ignored. */
+  let suppressNextClick = false;
+
+  function isSavedState() {
+    return fab?.classList.contains("rl-unread") || fab?.classList.contains("rl-read");
+  }
 
   function mountFab() {
     if (fab) return;
@@ -37,107 +55,209 @@
     fab = document.createElement("button");
     fab.id = "read-later-fab";
     fab.type = "button";
-    fab.innerHTML = ICON_DEFAULT;
+
+    iconEl = document.createElement("span");
+    iconEl.className = "rl-icon";
+    iconEl.innerHTML = ICON_DEFAULT;
+
+    holdRing = document.createElement("span");
+    holdRing.className = "rl-hold-ring";
+    holdRing.setAttribute("aria-hidden", "true");
+
+    fab.append(holdRing, iconEl);
     setLabel("Save this page to Read Later");
 
+    // Single click: only saves when not already saved. Once saved (orange
+    // or green), clicking does nothing — double-click toggles read status,
+    // holding it for 2.5 seconds removes it.
     fab.addEventListener("click", () => {
-      if (fab.disabled || fab.classList.contains("rl-busy")) return;
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      if (isSavedState() || fab.classList.contains("rl-busy")) return;
+      saveCurrentPage();
+    });
 
-      fab.classList.add("rl-busy");
-      if (resetTimer) clearTimeout(resetTimer);
+    // Double-click (click it twice): toggles read/unread, orange <-> green.
+    fab.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      if (!isSavedState() || fab.classList.contains("rl-busy")) return;
+      toggleReadStatus();
+    });
 
-      chrome.runtime.sendMessage(
-        {
-          action: "ADD_TO_READING_LIST",
-          payload: {
-            url: location.href,
-            title: document.title,
-            favIconUrl: getFaviconUrl(),
-          },
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            // Most commonly: the extension was reloaded/updated and this
-            // content script's connection to the background worker is stale.
-            showTransientError("Couldn't reach Read Later — try refreshing the page.");
-            return;
-          }
-          if (response?.ok) {
-            setSavedState(response.added ? "new" : "existing");
-          } else {
-            showTransientError(response?.error || "Couldn't save this page.");
-          }
-        }
-      );
+    // Press and hold for 2.5s (only while saved) to remove it from the list.
+    fab.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return; // left button / primary touch only
+      if (!isSavedState() || fab.classList.contains("rl-busy")) return;
+      startHold();
+    });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((type) => {
+      fab.addEventListener(type, () => cancelHold?.());
     });
 
     document.documentElement.appendChild(fab);
 
-    // Find out up front whether this page is already saved, so the button
-    // renders disabled from the start instead of only after a wasted click.
+    // Find out up front whether this page is already saved (and read or
+    // not), so the button renders its real state from the start instead of
+    // only finding out after a wasted click.
     chrome.runtime.sendMessage({ action: "CHECK_IS_SAVED", url: location.href }, (response) => {
-      if (chrome.runtime.lastError) return; // background not reachable — leave it enabled
-      if (response?.ok && response.saved) setSavedState("existing");
+      if (chrome.runtime.lastError) return; // background not reachable — leave it as "not saved"
+      if (response?.ok && response.saved) {
+        savedItemId = response.id;
+        currentReadStatus = Boolean(response.readStatus);
+        setSavedState(currentReadStatus ? "read" : "unread");
+      }
     });
   }
 
   function unmountFab() {
     if (!fab) return;
+    cancelHold?.();
     if (resetTimer) {
       clearTimeout(resetTimer);
       resetTimer = null;
     }
     fab.remove();
     fab = null;
+    iconEl = null;
+    holdRing = null;
+  }
+
+  /** Starts the 2.5s hold-to-remove countdown, animating the radial progress ring. */
+  function startHold() {
+    const startedAt = performance.now();
+    fab.classList.add("rl-holding");
+    let rafId = requestAnimationFrame(tick);
+
+    function tick(now) {
+      const progress = Math.min((now - startedAt) / HOLD_MS, 1);
+      fab.style.setProperty("--rl-hold-progress", progress.toFixed(3));
+      if (progress >= 1) {
+        cancelHold = null;
+        fab.classList.remove("rl-holding");
+        suppressNextClick = true;
+        unsaveCurrentPage();
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
+    cancelHold = () => {
+      cancelAnimationFrame(rafId);
+      fab.classList.remove("rl-holding");
+      fab.style.setProperty("--rl-hold-progress", "0");
+      cancelHold = null;
+    };
+  }
+
+  function saveCurrentPage() {
+    fab.classList.add("rl-busy");
+    if (resetTimer) clearTimeout(resetTimer);
+
+    chrome.runtime.sendMessage(
+      {
+        action: "ADD_TO_READING_LIST",
+        payload: {
+          url: location.href,
+          title: document.title,
+          favIconUrl: getFaviconUrl(),
+        },
+      },
+      (response) => {
+        fab.classList.remove("rl-busy");
+        if (chrome.runtime.lastError) {
+          // Most commonly: the extension was reloaded/updated and this
+          // content script's connection to the background worker is stale.
+          showTransientError("Couldn't reach Read Later — try refreshing the page.");
+          return;
+        }
+        if (response?.ok) {
+          savedItemId = response.item.id;
+          currentReadStatus = Boolean(response.item.readStatus);
+          setSavedState(currentReadStatus ? "read" : "unread");
+        } else {
+          showTransientError(response?.error || "Couldn't save this page.");
+        }
+      }
+    );
+  }
+
+  function toggleReadStatus() {
+    if (!savedItemId) return;
+    const nextReadStatus = !currentReadStatus;
+    fab.classList.add("rl-busy");
+
+    chrome.runtime.sendMessage(
+      { action: "TOGGLE_READ_STATUS", id: savedItemId, readStatus: nextReadStatus },
+      (response) => {
+        fab.classList.remove("rl-busy");
+        if (chrome.runtime.lastError || !response?.ok) {
+          showTransientError("Couldn't update read status.");
+          return;
+        }
+        currentReadStatus = nextReadStatus;
+        setSavedState(currentReadStatus ? "read" : "unread");
+      }
+    );
+  }
+
+  /** Removes the current page from the reading list (triggered by the 2.5s hold). */
+  function unsaveCurrentPage() {
+    if (!savedItemId) return;
+    fab.classList.add("rl-busy");
+
+    chrome.runtime.sendMessage({ action: "REMOVE_FROM_READING_LIST", id: savedItemId }, (response) => {
+      fab.classList.remove("rl-busy");
+      if (chrome.runtime.lastError || !response?.ok) {
+        showTransientError("Couldn't remove this page.");
+        return;
+      }
+      savedItemId = null;
+      currentReadStatus = false;
+      setSavedState(false);
+    });
   }
 
   /**
-   * Locks (or unlocks) the button into a permanent state. No-ops if the
-   * button isn't currently mounted (the floating button setting is off).
-   * @param {false | "new" | "existing"} state
-   *   false — not saved, normal clickable button.
-   *   "new" — just saved by this click (green).
-   *   "existing" — was already on the list before this (amber).
+   * @param {false | "unread" | "read"} state
+   *   false   — not saved, normal clickable button (indigo).
+   *   "unread"— saved, unread (orange). Double-click marks it read.
+   *   "read"  — saved, read (spring green). Double-click marks it unread.
    */
   function setSavedState(state) {
     if (!fab) return;
+    cancelHold?.();
     if (resetTimer) {
       clearTimeout(resetTimer);
       resetTimer = null;
     }
-    fab.classList.remove("rl-busy", "rl-error", "rl-saved", "rl-already-saved");
+    fab.classList.remove("rl-busy", "rl-error", "rl-unread", "rl-read");
 
-    if (state === "new") {
-      fab.classList.add("rl-saved");
-      fab.disabled = true;
-      fab.innerHTML = ICON_CHECK;
-      setLabel("Saved to Read Later!");
-    } else if (state === "existing") {
-      fab.classList.add("rl-already-saved");
-      fab.disabled = true;
-      fab.innerHTML = ICON_CHECK;
-      setLabel("Already in your Read Later list");
+    if (state === "unread") {
+      fab.classList.add("rl-unread");
+      iconEl.innerHTML = ICON_CHECK;
+      setLabel("Saved — double-click to mark as read, hold to remove");
+    } else if (state === "read") {
+      fab.classList.add("rl-read");
+      iconEl.innerHTML = ICON_CHECK;
+      setLabel("Read — double-click to mark as unread, hold to remove");
     } else {
-      fab.disabled = false;
-      fab.innerHTML = ICON_DEFAULT;
+      iconEl.innerHTML = ICON_DEFAULT;
       setLabel("Save this page to Read Later");
     }
   }
 
-  /** Shows a red error state briefly, then returns to the normal clickable button. */
+  /** Shows a red error state briefly, then reverts to whatever the real saved state is. */
   function showTransientError(message) {
     if (!fab) return;
-    fab.classList.remove("rl-saved", "rl-already-saved");
-    fab.disabled = false;
+    fab.classList.remove("rl-unread", "rl-read", "rl-busy");
     fab.classList.add("rl-error");
-    fab.innerHTML = ICON_ERROR;
+    iconEl.innerHTML = ICON_ERROR;
     setLabel(message);
 
     resetTimer = setTimeout(() => {
-      if (!fab) return;
-      fab.classList.remove("rl-error", "rl-busy");
-      fab.innerHTML = ICON_DEFAULT;
-      setLabel("Save this page to Read Later");
+      setSavedState(savedItemId ? (currentReadStatus ? "read" : "unread") : false);
     }, ERROR_RESET_MS);
   }
 
@@ -182,8 +302,13 @@
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.action !== "SHOW_TOAST") return;
     showToast(message.text, message.kind);
-    if (message.kind === "saved") setSavedState("new");
-    else if (message.kind === "info") setSavedState("existing");
+    if (!fab) return; // FAB disabled via settings — toast still shows, nothing else to update
+
+    if (message.kind === "saved" || message.kind === "info") {
+      if (message.id) savedItemId = message.id;
+      currentReadStatus = Boolean(message.readStatus);
+      setSavedState(currentReadStatus ? "read" : "unread");
+    }
   });
 
   // Respect the "on-page floating save button" option, and react live if

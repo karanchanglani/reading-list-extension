@@ -25,7 +25,7 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
   transform: scale(1);
   transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease,
-    background-color 0.18s ease;
+    background-color 0.18s ease, color 0.18s ease;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
@@ -42,21 +42,30 @@
   transform: scale(0.94);
 }
 
-#read-later-fab.rl-busy,
-#read-later-fab:disabled {
+#read-later-fab.rl-busy {
   cursor: default;
 }
 
-/* Just saved this click — green. */
-#read-later-fab.rl-saved {
-  background-color: #16a34a;
-  opacity: 1;
-}
-
-/* Was already on the list — amber, visually distinct from a fresh save. */
-#read-later-fab.rl-already-saved {
+/* Saved, unread — orange. Double-click (click it twice) marks it read. */
+#read-later-fab.rl-unread {
   background-color: #d97706;
   opacity: 1;
+}
+#read-later-fab.rl-unread:hover,
+#read-later-fab.rl-unread:focus-visible {
+  background-color: #d97706;
+}
+
+/* Saved, read — spring green. Dark icon color for contrast against the bright bg. */
+#read-later-fab.rl-read {
+  background-color: #00ff7f;
+  color: #064e3b;
+  opacity: 1;
+}
+#read-later-fab.rl-read:hover,
+#read-later-fab.rl-read:focus-visible {
+  background-color: #00ff7f;
+  color: #064e3b;
 }
 
 #read-later-fab.rl-error {
@@ -64,19 +73,15 @@
   opacity: 1;
 }
 
-/* Locked/inert states — no hover "pop" inviting a click. */
-#read-later-fab.rl-saved:hover,
-#read-later-fab.rl-saved:focus-visible {
-  transform: scale(1);
-  background-color: #16a34a;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-#read-later-fab.rl-already-saved:hover,
-#read-later-fab.rl-already-saved:focus-visible {
-  transform: scale(1);
-  background-color: #d97706;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
+#read-later-fab .rl-icon {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 #read-later-fab svg {
@@ -88,6 +93,34 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+/*
+ * Hold-to-remove progress ring — a radial "clock wipe" that fills in as you
+ * hold the button (2.5s), driven by the --rl-hold-progress custom property
+ * (0 to 1) set from JS on each animation frame. Only visible while holding.
+ */
+#read-later-fab .rl-hold-ring {
+  --rl-hold-progress: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: conic-gradient(
+    rgba(255, 255, 255, 0.65) calc(var(--rl-hold-progress) * 360deg),
+    transparent 0deg
+  );
+  transition: opacity 0.12s ease;
+}
+
+#read-later-fab.rl-holding .rl-hold-ring {
+  opacity: 1;
+}
+
+#read-later-fab.rl-holding {
+  transform: scale(1.05);
 }
 
 /* Keep the FAB reachable but out of the way on narrow/mobile viewports. */

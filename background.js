@@ -3,6 +3,8 @@ import {
   SETTINGS_KEY,
   getReadingList,
   addToReadingList,
+  removeFromReadingList,
+  updateReadingListItem,
   findByUrl,
   migrateLegacyStorage,
   getSettings,
@@ -46,14 +48,23 @@ function flashBadge(text, color, ms = BADGE_FLASH_MS) {
   }, ms);
 }
 
-/** Shows an in-page toast on the given tab, if its content script is present. */
-function notifyTab(tabId, text, kind) {
+/**
+ * Shows an in-page toast on the given tab, if its content script is
+ * present. Also carries the item's id/readStatus so the floating button
+ * can update its own state (which color, whether double-click-to-mark-read
+ * applies) even when the save happened somewhere other than the FAB itself.
+ */
+function notifyTab(tabId, text, kind, item) {
   if (!tabId) return;
-  chrome.tabs.sendMessage(tabId, { action: "SHOW_TOAST", text, kind }, () => {
-    // No content script on this tab (chrome:// pages, the Web Store, a
-    // freshly-opened tab that hasn't loaded yet, etc.) — nothing to do.
-    void chrome.runtime.lastError;
-  });
+  chrome.tabs.sendMessage(
+    tabId,
+    { action: "SHOW_TOAST", text, kind, id: item?.id, readStatus: item?.readStatus },
+    () => {
+      // No content script on this tab (chrome:// pages, the Web Store, a
+      // freshly-opened tab that hasn't loaded yet, etc.) — nothing to do.
+      void chrome.runtime.lastError;
+    }
+  );
 }
 
 /**
@@ -67,13 +78,13 @@ function notifyTab(tabId, text, kind) {
  */
 async function quickSave(source, tabId) {
   try {
-    const { added } = await addToReadingList(source);
+    const { added, item } = await addToReadingList(source);
     if (added) {
       flashBadge(BADGE_SUCCESS_TEXT, BADGE_SUCCESS_COLOR);
-      notifyTab(tabId, "Article added!", "saved");
+      notifyTab(tabId, "Article added!", "saved", item);
     } else {
       flashBadge("•", BADGE_INFO_COLOR); // already on the list
-      notifyTab(tabId, "Already added", "info");
+      notifyTab(tabId, "Already added", "info", item);
     }
   } catch (error) {
     console.error("[Read Later] Quick save failed:", error);
@@ -232,8 +243,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // Lets the content script (the floating button) check on page load whether
-// the current URL is already saved, so it can render as disabled up front
-// instead of only finding out after the user clicks it.
+// the current URL is already saved, so it can render its saved/unread/read
+// state up front instead of only finding out after the user clicks it.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.action !== "CHECK_IS_SAVED") {
     return false;
@@ -241,11 +252,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   getReadingList()
     .then((items) => {
-      sendResponse({ ok: true, saved: Boolean(findByUrl(items, message.url)) });
+      const match = findByUrl(items, message.url);
+      sendResponse({
+        ok: true,
+        saved: Boolean(match),
+        id: match?.id ?? null,
+        readStatus: Boolean(match?.readStatus),
+      });
     })
     .catch((error) => {
       sendResponse({ ok: false, error: error.message });
     });
+
+  return true;
+});
+
+// Lets the content script toggle read/unread from a double-click on the
+// floating button, without needing direct storage access.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.action !== "TOGGLE_READ_STATUS") {
+    return false;
+  }
+
+  updateReadingListItem(message.id, { readStatus: Boolean(message.readStatus) })
+    .then(() => sendResponse({ ok: true }))
+    .catch((error) => sendResponse({ ok: false, error: error.message }));
+
+  return true;
+});
+
+// Lets the content script remove an item after a 2.5s press-and-hold on the
+// floating button, without needing direct storage access.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.action !== "REMOVE_FROM_READING_LIST") {
+    return false;
+  }
+
+  removeFromReadingList(message.id)
+    .then(() => sendResponse({ ok: true }))
+    .catch((error) => sendResponse({ ok: false, error: error.message }));
 
   return true;
 });
