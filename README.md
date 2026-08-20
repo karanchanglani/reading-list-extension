@@ -55,6 +55,8 @@ Both are the same combo on Windows, Linux, ChromeOS, and Mac. The save shortcut 
 
 Saving via the shortcut gets you both the toolbar badge flash *and* an on-page toast confirming it.
 
+> **Shortcut showing blank after updating the extension?** Chrome only auto-applies a command's default key the first time an extension is *installed* — clicking "Reload" on `chrome://extensions` after a manifest change doesn't count as a fresh install, so a newly-added command (like `Ctrl+Shift+L` if you already had an older version of this extension loaded) comes up unbound. Fix it either way: **Remove** the extension and **Load unpacked** it again from the same folder (a true reinstall — your saved articles are untouched, since `chrome.storage.sync` data is keyed to the extension's id, not the install action), or just bind it by hand via the pencil icon on `chrome://extensions/shortcuts`.
+
 ### 3. Right-click menu — save a page or a specific link
 
 Right-click anywhere on a page (or directly on a link) to see **"Add link/page to Reading List."**
