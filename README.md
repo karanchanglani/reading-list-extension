@@ -8,7 +8,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
-- An options page to turn the floating button or the right-click menu off individually, applied live to already-open tabs
+- An options page to turn the floating button or the right-click menu off individually (applied live to already-open tabs), manage keyboard shortcuts, and export/import your reading list as JSON or a Pocket CSV export
 - Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
 - Duplicate protection — the same URL is never saved twice
 - Each article is stored under its own `chrome.storage.sync` key (with a small index key for ordering) rather than one combined blob, so the list isn't capped by sync's small per-key size limit
@@ -102,15 +102,22 @@ Open it by clicking the toolbar icon (or right-clicking it → **Open Reading Li
 
 If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
 
-### 7. Options — entry points & shortcuts
+### 7. Options — entry points, shortcuts & data
 
 Open Options by clicking the gear icon in the popup (next to "Save Current Page"), or by right-clicking the toolbar icon → **Options**.
 
+**Entry points**
 - **On-page floating save button** — turn off if you don't want the bubble appearing on every page.
 - **Right-click "Add to Reading List" menu** — turn off to remove that item from the page/link right-click menu.
-- **Manage shortcuts button** — opens Chrome's own `chrome://extensions/shortcuts` page directly, where you can view or rebind either keyboard shortcut.
 
-Toggle changes apply immediately, even to tabs already open — no reload needed. The toolbar icon and right-click → *Open Reading List Manager* are unaffected by these toggles; they're always available.
+Toggle changes apply immediately, even to tabs already open — no reload needed. The toolbar icon, both keyboard shortcuts, and right-click → *Open Reading List Manager* are unaffected by these toggles; they're always available.
+
+**Keyboard shortcut**
+- **Manage shortcuts button** — opens Chrome's own `chrome://extensions/shortcuts` page directly, where you can view or rebind either shortcut.
+
+**Your data**
+- **Export as JSON** — downloads the full reading list as a single JSON file, for backup or moving to another browser/computer.
+- **Import** — accepts that same JSON format, or a Pocket CSV export (`title,url,time_added,tags,status`). Duplicate URLs are skipped automatically, so re-importing the same file is safe; you'll see a summary like "1 added, 1 skipped."
 
 ### 8. Duplicate protection & syncing
 
@@ -130,6 +137,8 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 | Reorder my saved articles | Drag an item by its grip icon in the manager (search box must be empty) |
 | Turn off the floating button or right-click menu | Open Options — gear icon in the popup, or right-click the toolbar icon → *Options* |
 | View or rebind a keyboard shortcut | Open Options → *Manage shortcuts*, or go straight to `chrome://extensions/shortcuts` |
+| Back up or move my list to another browser | Open Options → *Export as JSON* |
+| Restore a backup, or import from Pocket | Open Options → *Import*, choose a Read Later JSON export or a Pocket CSV export |
 
 ## Project structure
 
@@ -138,7 +147,7 @@ manifest.json     — Manifest V3 config: permissions, action, commands, content
 background.js     — service worker: badge, context menus, keyboard command, message handling
 storage.js         — chrome.storage.sync data layer (shared by background.js, popup.js, options.js)
 popup.html/js      — the reading list popup / standalone manager window
-options.html/js    — the options page (toggle the floating button / right-click menu)
+options.html/js    — the options page (entry-point toggles, shortcut link, export/import)
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
 icons/             — toolbar and extension icons
 ```
