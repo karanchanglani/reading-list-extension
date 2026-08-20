@@ -164,8 +164,13 @@ importInput.addEventListener("change", async () => {
   }
 
   try {
-    const { added, skipped, total } = await importReadingListItems(rawItems);
-    showImportStatus(`${added} added, ${skipped} skipped (already on your list, or missing a valid URL) — ${total} in the file.`);
+    const { added, skipped, total, usage } = await importReadingListItems(rawItems);
+    const summary = `${added} added, ${skipped} skipped (already on your list, or missing a valid URL) — ${total} in the file.`;
+    if (usage?.isNearLimit) {
+      showImportStatus(`${summary} Storage is now ${usage.percentUsed}% full — consider archiving old articles.`, true);
+    } else {
+      showImportStatus(summary);
+    }
   } catch (error) {
     showImportStatus(`Import failed: ${error.message}`, true);
   } finally {

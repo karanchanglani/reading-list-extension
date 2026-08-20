@@ -176,6 +176,9 @@
           savedItemId = response.item.id;
           currentReadStatus = Boolean(response.item.readStatus);
           setSavedState(currentReadStatus ? "read" : "unread");
+          if (response.added && response.usage?.isNearLimit) {
+            setLabel(`Saved — storage ${response.usage.percentUsed}% full, export a backup from Options soon`);
+          }
         } else {
           showTransientError(response?.error || "Couldn't save this page.");
         }

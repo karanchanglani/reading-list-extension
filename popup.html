@@ -220,6 +220,21 @@
       font-size: 12.5px;
       line-height: 1.5;
     }
+
+    /* storage usage indicator */
+    #usage-info {
+      display: none;
+      padding: 8px 14px;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    #usage-info.is-visible { display: block; }
+    #usage-info.is-warning {
+      color: #9a3412;
+      background: #fffbeb;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -270,6 +285,7 @@
   <ul id="list"></ul>
   <div id="empty-state" hidden>No saved pages yet.<br />Click "Save Current Page" to add one.</div>
   <div id="no-results" hidden>No matches found.</div>
+  <div id="usage-info"></div>
 
   <script type="module" src="popup.js"></script>
 </body>

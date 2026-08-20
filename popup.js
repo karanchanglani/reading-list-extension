@@ -4,6 +4,7 @@ import {
   updateReadingListItem,
   reorderReadingList,
   findByUrl,
+  getStorageUsage,
 } from "./storage.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -44,6 +45,7 @@ const searchClearBtn = document.getElementById("search-clear");
 const listEl = document.getElementById("list");
 const emptyStateEl = document.getElementById("empty-state");
 const noResultsEl = document.getElementById("no-results");
+const usageInfoEl = document.getElementById("usage-info");
 
 /** Full, unfiltered list — the source of truth for rendering. */
 let allItems = [];
@@ -200,10 +202,25 @@ function updateSaveButtonState() {
   saveBtnLabel.textContent = alreadySaved ? "Saved" : "Save Current Page";
 }
 
+/** Shows a quiet "N saved" count, switching to a warning once storage is nearly full. */
+function renderUsage(usage) {
+  if (!usage || usage.itemCount === 0) {
+    usageInfoEl.classList.remove("is-visible", "is-warning");
+    return;
+  }
+
+  usageInfoEl.classList.add("is-visible");
+  usageInfoEl.classList.toggle("is-warning", usage.isNearLimit);
+  usageInfoEl.textContent = usage.isNearLimit
+    ? `${usage.itemCount} / ${usage.maxItems} saved — ${usage.percentUsed}% full. Export a backup from Options soon.`
+    : `${usage.itemCount} saved`;
+}
+
 async function refreshList() {
   allItems = await getReadingList();
   renderList();
   updateSaveButtonState();
+  renderUsage(await getStorageUsage());
 }
 
 async function prefetchActiveTab() {
@@ -231,7 +248,11 @@ async function saveCurrentPage() {
       return;
     }
 
-    showStatus(response.added ? "Saved!" : "Already saved.");
+    if (response.added && response.usage?.isNearLimit) {
+      showStatus(`Saved! Storage ${response.usage.percentUsed}% full — export a backup soon.`, 3200);
+    } else {
+      showStatus(response.added ? "Saved!" : "Already saved.");
+    }
     await refreshList();
   } finally {
     updateSaveButtonState();
@@ -242,6 +263,7 @@ async function removeItem(id) {
   allItems = await removeFromReadingList(id);
   renderList();
   updateSaveButtonState();
+  renderUsage(await getStorageUsage());
 }
 
 async function toggleRead(id, readStatus) {

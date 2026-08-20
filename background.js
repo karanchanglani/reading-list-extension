@@ -68,6 +68,23 @@ function notifyTab(tabId, text, kind, item) {
 }
 
 /**
+ * Badge text and toast message for a successful new save. Once storage is
+ * within 10% of chrome.storage.sync's item/byte ceiling, this swaps the
+ * usual "SAVED" flash for the actual percentage and nudges toward Export —
+ * quieter than blocking the save, since the item was saved successfully.
+ * @param {import("./storage.js").StorageUsage} [usage]
+ */
+function successFeedback(usage) {
+  if (usage?.isNearLimit) {
+    return {
+      badgeText: `${usage.percentUsed}%`,
+      message: `Article added! Storage ${usage.percentUsed}% full — export a backup from Options soon.`,
+    };
+  }
+  return { badgeText: BADGE_SUCCESS_TEXT, message: "Article added!" };
+}
+
+/**
  * Adds a page to the reading list and reports the outcome via a badge flash
  * plus an in-page toast (when a tab is available). Used by the entry points
  * that don't already show their own feedback — the keyboard shortcut and
@@ -78,10 +95,11 @@ function notifyTab(tabId, text, kind, item) {
  */
 async function quickSave(source, tabId) {
   try {
-    const { added, item } = await addToReadingList(source);
+    const { added, item, usage } = await addToReadingList(source);
     if (added) {
-      flashBadge(BADGE_SUCCESS_TEXT, BADGE_SUCCESS_COLOR);
-      notifyTab(tabId, "Article added!", "saved", item);
+      const { badgeText, message } = successFeedback(usage);
+      flashBadge(badgeText, BADGE_SUCCESS_COLOR);
+      notifyTab(tabId, message, "saved", item);
     } else {
       flashBadge("•", BADGE_INFO_COLOR); // already on the list
       notifyTab(tabId, "Already added", "info", item);
@@ -308,9 +326,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   };
 
   addToReadingList(page)
-    .then(({ added, item, list }) => {
-      flashBadge(added ? BADGE_SUCCESS_TEXT : "•", added ? BADGE_SUCCESS_COLOR : BADGE_INFO_COLOR);
-      sendResponse({ ok: true, added, item, count: list.length });
+    .then(({ added, item, list, usage }) => {
+      if (added) {
+        flashBadge(successFeedback(usage).badgeText, BADGE_SUCCESS_COLOR);
+      } else {
+        flashBadge("•", BADGE_INFO_COLOR);
+      }
+      sendResponse({ ok: true, added, item, count: list.length, usage });
     })
     .catch((error) => {
       console.error("[Read Later] Failed to add page:", error);

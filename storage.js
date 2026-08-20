@@ -31,6 +31,43 @@ export const DEFAULT_SETTINGS = {
 // per-item quota on its own, so we guard against that at write time.
 const SYNC_QUOTA_BYTES_PER_ITEM = chrome.storage.sync.QUOTA_BYTES_PER_ITEM ?? 8192;
 
+// MAX_ITEMS caps the total number of *keys* in sync storage, not just
+// reading-list items — INDEX_KEY and SETTINGS_KEY each take one of those
+// slots too, on top of one key per article.
+const SYNC_MAX_ITEMS = chrome.storage.sync.MAX_ITEMS ?? 512;
+const SYNC_QUOTA_BYTES_TOTAL = chrome.storage.sync.QUOTA_BYTES ?? 102400;
+const RESERVED_KEYS = 2; // INDEX_KEY + SETTINGS_KEY
+const NEAR_LIMIT_RATIO = 0.9;
+
+/**
+ * @typedef {Object} StorageUsage
+ * @property {number} itemCount
+ * @property {number} maxItems - article ceiling, accounting for this extension's own reserved keys
+ * @property {number} bytesInUse
+ * @property {number} quotaBytes
+ * @property {boolean} isNearLimit - true once within 10% of either ceiling
+ * @property {number} percentUsed - the higher of the two ratios, as a rounded percentage
+ */
+
+/** @returns {Promise<StorageUsage>} */
+export async function getStorageUsage() {
+  const ids = await getIndex();
+  const maxItems = SYNC_MAX_ITEMS - RESERVED_KEYS;
+  const bytesInUse = await chrome.storage.sync.getBytesInUse(null);
+
+  const itemRatio = ids.length / maxItems;
+  const byteRatio = bytesInUse / SYNC_QUOTA_BYTES_TOTAL;
+
+  return {
+    itemCount: ids.length,
+    maxItems,
+    bytesInUse,
+    quotaBytes: SYNC_QUOTA_BYTES_TOTAL,
+    isNearLimit: itemRatio >= NEAR_LIMIT_RATIO || byteRatio >= NEAR_LIMIT_RATIO,
+    percentUsed: Math.round(Math.max(itemRatio, byteRatio) * 100),
+  };
+}
+
 /**
  * @typedef {Object} ReadingListItem
  * @property {string} id
@@ -137,7 +174,7 @@ export function findByUrl(items, url) {
 /**
  * Adds a page to the reading list, skipping it if the URL is already saved.
  * @param {{ url: string, title?: string, favIconUrl?: string }} source
- * @returns {Promise<{ added: boolean, item: ReadingListItem, list: ReadingListItem[] }>}
+ * @returns {Promise<{ added: boolean, item: ReadingListItem, list: ReadingListItem[], usage: StorageUsage }>}
  */
 export async function addToReadingList(source) {
   if (!source?.url || !/^https?:/i.test(source.url)) {
@@ -149,7 +186,7 @@ export async function addToReadingList(source) {
 
   const existing = findByUrl(existingItems, source.url);
   if (existing) {
-    return { added: false, item: existing, list: existingItems };
+    return { added: false, item: existing, list: existingItems, usage: await getStorageUsage() };
   }
 
   const item = createReadingListItem(source);
@@ -165,7 +202,7 @@ export async function addToReadingList(source) {
     [itemKey(item.id)]: item,
   });
 
-  return { added: true, item, list: [item, ...existingItems] };
+  return { added: true, item, list: [item, ...existingItems], usage: await getStorageUsage() };
 }
 
 /**
@@ -239,7 +276,7 @@ export async function saveSettings(changes) {
  * for the whole batch — a large import (hundreds of items) done one write
  * per item would risk tripping sync's MAX_WRITE_OPERATIONS_PER_MINUTE.
  * @param {Array<{ url?: string, title?: string, favIconUrl?: string, addedAt?: number, readStatus?: boolean }>} rawItems
- * @returns {Promise<{ added: number, skipped: number, total: number }>}
+ * @returns {Promise<{ added: number, skipped: number, total: number, usage: StorageUsage }>}
  */
 export async function importReadingListItems(rawItems) {
   const ids = await getIndex();
@@ -286,5 +323,5 @@ export async function importReadingListItems(rawItems) {
     await chrome.storage.sync.set(writes);
   }
 
-  return { added, skipped, total: rawItems.length };
+  return { added, skipped, total: rawItems.length, usage: await getStorageUsage() };
 }
