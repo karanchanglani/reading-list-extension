@@ -29,6 +29,13 @@
         "mac": "MacCtrl+Shift+S"
       },
       "description": "Save the current page to your Read Later list"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "MacCtrl+Shift+L"
+      },
+      "description": "Open your Read Later reading list"
     }
   },
   "content_scripts": [

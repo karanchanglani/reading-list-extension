@@ -5,7 +5,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 ## Features
 
 - One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
-- Keyboard shortcut (`Ctrl+Shift+S` on every platform) for instant saving, with an on-page toast confirmation
+- Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
 - An options page to turn the floating button or the right-click menu off individually, applied live to already-open tabs
@@ -44,15 +44,16 @@ Click the book-plus icon next to the address bar to open your reading list in a 
 
 Each flash lasts a second or two, then the badge returns to your saved-item count automatically.
 
-### 2. Keyboard shortcut
+### 2. Keyboard shortcuts
 
-Save the current tab without touching the mouse:
+| Shortcut | Does what |
+|---|---|
+| `Ctrl+Shift+S` | Saves the current tab, without touching the mouse. |
+| `Ctrl+Shift+L` | Opens the reading list — identical to clicking the toolbar icon. |
 
-**`Ctrl+Shift+S`** — the same combo on Windows, Linux, ChromeOS, and Mac.
+Both are the same combo on Windows, Linux, ChromeOS, and Mac. The save shortcut intentionally avoids the letter **R**: `Shift+Ctrl/Cmd+R` is Chrome's built-in hard-refresh shortcut on every platform, so an extension can never reliably use it. If either is claimed by something else on your machine, reassign it at `chrome://extensions/shortcuts` (or click **Manage shortcuts** in Options — see below).
 
-This intentionally avoids the letter **R**: `Shift+Ctrl/Cmd+R` is Chrome's built-in hard-refresh shortcut on every platform, so an extension can never reliably use it. If `Ctrl+Shift+S` is claimed by something else on your machine, reassign it at `chrome://extensions/shortcuts`.
-
-You'll get both the toolbar badge flash *and* an on-page toast confirming the save.
+Saving via the shortcut gets you both the toolbar badge flash *and* an on-page toast confirming it.
 
 ### 3. Right-click menu — save a page or a specific link
 
@@ -99,14 +100,15 @@ Open it by clicking the toolbar icon (or right-clicking it → **Open Reading Li
 
 If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
 
-### 7. Options — choose your entry points
+### 7. Options — entry points & shortcuts
 
 Open Options by clicking the gear icon in the popup (next to "Save Current Page"), or by right-clicking the toolbar icon → **Options**.
 
 - **On-page floating save button** — turn off if you don't want the bubble appearing on every page.
 - **Right-click "Add to Reading List" menu** — turn off to remove that item from the page/link right-click menu.
+- **Manage shortcuts button** — opens Chrome's own `chrome://extensions/shortcuts` page directly, where you can view or rebind either keyboard shortcut.
 
-Changes apply immediately, even to tabs already open — no reload needed. The toolbar icon, the keyboard shortcut, and right-click → *Open Reading List Manager* are unaffected by these toggles; they're always available.
+Toggle changes apply immediately, even to tabs already open — no reload needed. The toolbar icon and right-click → *Open Reading List Manager* are unaffected by these toggles; they're always available.
 
 ### 8. Duplicate protection & syncing
 
@@ -120,11 +122,12 @@ Changes apply immediately, even to tabs already open — no reload needed. The t
 |---|---|
 | Save the page I'm on right now | Press `Ctrl+Shift+S`, click the floating button on the page, or open the toolbar popup and click *Save Current Page* |
 | Save a link without opening it | Right-click the link → *Add link/page to Reading List* |
-| View / search my saved articles | Click the toolbar icon (or right-click it → *Open Reading List Manager* for a separate window) |
+| View / search my saved articles | Press `Ctrl+Shift+L`, click the toolbar icon, or right-click it → *Open Reading List Manager* for a separate window |
 | Mark something as read | Double-click the floating button on the page, or click the checkmark in the manager |
 | Remove a saved article | Hold the floating button for 2.5 seconds, or click the trash icon in the manager |
 | Reorder my saved articles | Drag an item by its grip icon in the manager (search box must be empty) |
 | Turn off the floating button or right-click menu | Open Options — gear icon in the popup, or right-click the toolbar icon → *Options* |
+| View or rebind a keyboard shortcut | Open Options → *Manage shortcuts*, or go straight to `chrome://extensions/shortcuts` |
 
 ## Project structure
 
