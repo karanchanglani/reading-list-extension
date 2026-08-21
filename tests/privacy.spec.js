@@ -11,7 +11,14 @@ test.describe("Privacy policy", () => {
     const privacyLink = optionsPage.locator('footer a[href="privacy.html"]');
     await expect(privacyLink).toBeVisible();
 
-    const [privacyPage] = await Promise.all([context.waitForEvent("page"), privacyLink.click()]);
+    const [privacyPage] = await Promise.all([
+      // Filtered by URL: the install-triggered welcome.html tab can also
+      // still be arriving as a "page" event around when this test runs.
+      context.waitForEvent("page", {
+        predicate: (p) => p.url() === `chrome-extension://${extensionId}/privacy.html`,
+      }),
+      privacyLink.click(),
+    ]);
     await privacyPage.waitForLoadState("domcontentloaded");
 
     expect(privacyPage.url()).toBe(`chrome-extension://${extensionId}/privacy.html`);

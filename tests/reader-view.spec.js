@@ -35,7 +35,11 @@ test.describe("Article content caching / reader view", () => {
     await expect(popupPage.locator("#list .reader-btn")).toHaveCount(1);
 
     const [readerPage] = await Promise.all([
-      context.waitForEvent("page"),
+      // Filtered by URL: the install-triggered welcome.html tab can also
+      // still be arriving as a "page" event around when this test runs.
+      context.waitForEvent("page", {
+        predicate: (p) => p.url().startsWith(`chrome-extension://${extensionId}/reader.html`),
+      }),
       popupPage.locator("#list .reader-btn").click(),
     ]);
     await readerPage.waitForLoadState("domcontentloaded");

@@ -79,10 +79,10 @@ function successFeedback(usage) {
   if (usage?.isNearLimit) {
     return {
       badgeText: `${usage.percentUsed}%`,
-      message: `Article added! Storage ${usage.percentUsed}% full — export a backup from Options soon.`,
+      message: chrome.i18n.getMessage("toastArticleAddedNearLimit", [String(usage.percentUsed)]),
     };
   }
-  return { badgeText: BADGE_SUCCESS_TEXT, message: "Article added!" };
+  return { badgeText: BADGE_SUCCESS_TEXT, message: chrome.i18n.getMessage("toastArticleAdded") };
 }
 
 /**
@@ -103,12 +103,12 @@ async function quickSave(source, tabId) {
       notifyTab(tabId, message, "saved", item);
     } else {
       flashBadge("•", BADGE_INFO_COLOR); // already on the list
-      notifyTab(tabId, "Already added", "info", item);
+      notifyTab(tabId, chrome.i18n.getMessage("toastAlreadyAdded"), "info", item);
     }
   } catch (error) {
     console.error("[Read Later] Quick save failed:", error);
     flashBadge("!", BADGE_ERROR_COLOR);
-    notifyTab(tabId, "Couldn't save this page", "error");
+    notifyTab(tabId, chrome.i18n.getMessage("toastCouldntSavePage"), "error");
   }
 }
 
@@ -154,7 +154,7 @@ async function setupContextMenu() {
     if (settings.contextMenuEnabled) {
       createMenuItem({
         id: ADD_MENU_ID,
-        title: "Add link/page to Reading List",
+        title: chrome.i18n.getMessage("contextMenuAddToList"),
         contexts: ["page", "link"],
       });
     }
@@ -162,7 +162,7 @@ async function setupContextMenu() {
     // toolbar icon itself, a separate feature from the page/link menu.
     createMenuItem({
       id: MANAGER_MENU_ID,
-      title: "Open Reading List Manager",
+      title: chrome.i18n.getMessage("contextMenuOpenManager"),
       contexts: ["action"],
     });
   });
@@ -183,9 +183,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.notifications.create("read-later-pin-nudge", {
       type: "basic",
       iconUrl: "icons/icon128.png",
-      title: "Read Later is installed",
-      message:
-        "Click the puzzle-piece icon in Chrome's toolbar and pin Read Later so it stays right next to the address bar.",
+      title: chrome.i18n.getMessage("installNotificationTitle"),
+      message: chrome.i18n.getMessage("installNotificationMessage"),
       priority: 1,
     });
 

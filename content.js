@@ -65,7 +65,7 @@
     holdRing.setAttribute("aria-hidden", "true");
 
     fab.append(holdRing, iconEl);
-    setLabel("Save this page to Read Later");
+    setLabel(chrome.i18n.getMessage("fabLabelDefault"));
 
     // Single click: only saves when not already saved. Once saved (orange
     // or green), clicking does nothing — double-click toggles read status,
@@ -170,7 +170,7 @@
         if (chrome.runtime.lastError) {
           // Most commonly: the extension was reloaded/updated and this
           // content script's connection to the background worker is stale.
-          showTransientError("Couldn't reach Read Later — try refreshing the page.");
+          showTransientError(chrome.i18n.getMessage("fabErrorUnreachable"));
           return;
         }
         if (response?.ok) {
@@ -178,10 +178,10 @@
           currentReadStatus = Boolean(response.item.readStatus);
           setSavedState(currentReadStatus ? "read" : "unread");
           if (response.added && response.usage?.isNearLimit) {
-            setLabel(`Saved — storage ${response.usage.percentUsed}% full, export a backup from Options soon`);
+            setLabel(chrome.i18n.getMessage("fabLabelSavedNearLimit", [String(response.usage.percentUsed)]));
           }
         } else {
-          showTransientError(response?.error || "Couldn't save this page.");
+          showTransientError(response?.error || chrome.i18n.getMessage("fabErrorSaveFailed"));
         }
       }
     );
@@ -197,7 +197,7 @@
       (response) => {
         fab.classList.remove("rl-busy");
         if (chrome.runtime.lastError || !response?.ok) {
-          showTransientError("Couldn't update read status.");
+          showTransientError(chrome.i18n.getMessage("fabErrorUpdateReadStatus"));
           return;
         }
         currentReadStatus = nextReadStatus;
@@ -214,7 +214,7 @@
     chrome.runtime.sendMessage({ action: "REMOVE_FROM_READING_LIST", id: savedItemId }, (response) => {
       fab.classList.remove("rl-busy");
       if (chrome.runtime.lastError || !response?.ok) {
-        showTransientError("Couldn't remove this page.");
+        showTransientError(chrome.i18n.getMessage("fabErrorRemoveFailed"));
         return;
       }
       savedItemId = null;
@@ -241,14 +241,14 @@
     if (state === "unread") {
       fab.classList.add("rl-unread");
       iconEl.innerHTML = ICON_CHECK;
-      setLabel("Saved — double-click to mark as read, hold to remove");
+      setLabel(chrome.i18n.getMessage("fabLabelUnread"));
     } else if (state === "read") {
       fab.classList.add("rl-read");
       iconEl.innerHTML = ICON_CHECK;
-      setLabel("Read — double-click to mark as unread, hold to remove");
+      setLabel(chrome.i18n.getMessage("fabLabelRead"));
     } else {
       iconEl.innerHTML = ICON_DEFAULT;
-      setLabel("Save this page to Read Later");
+      setLabel(chrome.i18n.getMessage("fabLabelDefault"));
     }
   }
 

@@ -30,7 +30,12 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto(`chrome-extension://${extensionId}/options.html`, { waitUntil: "load" });
 
     const [shortcutsPage] = await Promise.all([
-      context.waitForEvent("page", { timeout: 5000 }),
+      // Filtered by URL: the install-triggered welcome.html tab can also
+      // still be arriving as a "page" event around when this test runs.
+      context.waitForEvent("page", {
+        predicate: (p) => p.url() === "chrome://extensions/shortcuts",
+        timeout: 5000,
+      }),
       page.locator("#shortcuts-btn").click(),
     ]);
     await shortcutsPage.waitForLoadState("load").catch(() => {});

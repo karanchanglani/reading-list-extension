@@ -1,0 +1,224 @@
+{
+  "appName": {
+    "message": "Read Later",
+    "description": "Extension name shown in chrome://extensions, the toolbar tooltip, and the Web Store listing."
+  },
+  "appDescription": {
+    "message": "Save the current page to your reading list and revisit it anytime.",
+    "description": "One-line extension description shown in chrome://extensions and the Web Store listing."
+  },
+
+  "toastArticleAdded": {
+    "message": "Article added!",
+    "description": "On-page toast after a successful save via the keyboard shortcut or right-click menu."
+  },
+  "toastArticleAddedNearLimit": {
+    "message": "Article added! Storage $PERCENT$% full — export a backup from Options soon.",
+    "description": "On-page toast after a successful save that also crosses the near-quota threshold.",
+    "placeholders": { "percent": { "content": "$1", "example": "92" } }
+  },
+  "toastAlreadyAdded": {
+    "message": "Already added",
+    "description": "On-page toast when the page being saved is already on the list."
+  },
+  "toastCouldntSavePage": {
+    "message": "Couldn't save this page",
+    "description": "On-page toast when a save via the keyboard shortcut or right-click menu fails."
+  },
+  "contextMenuAddToList": {
+    "message": "Add link/page to Reading List",
+    "description": "Right-click context menu item on a page or link."
+  },
+  "contextMenuOpenManager": {
+    "message": "Open Reading List Manager",
+    "description": "Right-click context menu item on the toolbar icon itself."
+  },
+  "installNotificationTitle": {
+    "message": "Read Later is installed",
+    "description": "Title of the one-time OS notification shown right after install."
+  },
+  "installNotificationMessage": {
+    "message": "Click the puzzle-piece icon in Chrome's toolbar and pin Read Later so it stays right next to the address bar.",
+    "description": "Body of the one-time OS notification shown right after install."
+  },
+
+  "fabLabelDefault": {
+    "message": "Save this page to Read Later",
+    "description": "aria-label/title on the on-page floating button when the page isn't saved yet."
+  },
+  "fabLabelUnread": {
+    "message": "Saved — double-click to mark as read, hold to remove",
+    "description": "aria-label/title on the on-page floating button when the page is saved and unread."
+  },
+  "fabLabelRead": {
+    "message": "Read — double-click to mark as unread, hold to remove",
+    "description": "aria-label/title on the on-page floating button when the page is saved and read."
+  },
+  "fabLabelSavedNearLimit": {
+    "message": "Saved — storage $PERCENT$% full, export a backup from Options soon",
+    "description": "aria-label/title on the floating button right after a save that crosses the near-quota threshold.",
+    "placeholders": { "percent": { "content": "$1", "example": "92" } }
+  },
+  "fabErrorUnreachable": {
+    "message": "Couldn't reach Read Later — try refreshing the page.",
+    "description": "Floating button error state when the background service worker can't be reached."
+  },
+  "fabErrorSaveFailed": {
+    "message": "Couldn't save this page.",
+    "description": "Floating button error state fallback when a save fails without a specific error message."
+  },
+  "fabErrorUpdateReadStatus": {
+    "message": "Couldn't update read status.",
+    "description": "Floating button error state when toggling read/unread fails."
+  },
+  "fabErrorRemoveFailed": {
+    "message": "Couldn't remove this page.",
+    "description": "Floating button error state when removing the page fails."
+  },
+
+  "statusSaved": {
+    "message": "Saved",
+    "description": "Brief status text shown in Options after toggling a setting or exporting."
+  },
+  "importErrorNoArticles": {
+    "message": "Couldn't find any articles in that file — expected a Read Later JSON export or a Pocket CSV export.",
+    "description": "Options import error when the chosen file can't be parsed as either supported format."
+  },
+  "importSummary": {
+    "message": "$ADDED$ added, $SKIPPED$ skipped (already on your list, or missing a valid URL) — $TOTAL$ in the file.",
+    "description": "Options import result summary.",
+    "placeholders": {
+      "added": { "content": "$1", "example": "12" },
+      "skipped": { "content": "$2", "example": "3" },
+      "total": { "content": "$3", "example": "15" }
+    }
+  },
+  "importSummaryNearLimit": {
+    "message": "$SUMMARY$ Storage is now $PERCENT$% full — consider archiving old articles.",
+    "description": "Options import result summary, appended when the import crosses the near-quota threshold.",
+    "placeholders": {
+      "summary": { "content": "$1", "example": "12 added, 3 skipped..." },
+      "percent": { "content": "$2", "example": "92" }
+    }
+  },
+  "importFailed": {
+    "message": "Import failed: $ERROR$",
+    "description": "Options import error when importReadingListItems itself throws.",
+    "placeholders": { "error": { "content": "$1", "example": "Storage quota exceeded" } }
+  },
+
+  "readerBtnTitle": {
+    "message": "Open reader view (cached, works even if the page is offline)",
+    "description": "Title/tooltip on the Manager's per-item reader-view button."
+  },
+  "tagBtnTitle": {
+    "message": "Edit tags",
+    "description": "Title/tooltip on the Manager's per-item tag-edit button."
+  },
+  "markAsUnread": {
+    "message": "Mark as unread",
+    "description": "Title/tooltip on the Manager's per-item read-toggle button, when the item is currently read."
+  },
+  "markAsRead": {
+    "message": "Mark as read",
+    "description": "Title/tooltip on the Manager's per-item read-toggle button, when the item is currently unread."
+  },
+  "deleteBtnTitle": {
+    "message": "Delete",
+    "description": "Title/tooltip on the Manager's per-item delete button."
+  },
+  "tagsInputPlaceholder": {
+    "message": "tag1, tag2",
+    "description": "Placeholder text in the Manager's inline tag-editing input."
+  },
+  "saveBtnNoActivePage": {
+    "message": "No active page to save",
+    "description": "Title/tooltip on the popup's Save button when there's no active tab to save."
+  },
+  "saveBtnCantSavePage": {
+    "message": "This page can't be saved",
+    "description": "Title/tooltip on the popup's Save button when the active tab isn't an http(s) page."
+  },
+  "saveBtnAlreadySaved": {
+    "message": "Already saved",
+    "description": "Title/tooltip on the popup's Save button when the active tab is already on the list."
+  },
+  "saveBtnSaveCurrentPage": {
+    "message": "Save the current page",
+    "description": "Title/tooltip on the popup's Save button in its normal, savable state."
+  },
+  "saveBtnLabelSaved": {
+    "message": "Saved",
+    "description": "Visible label on the popup's Save button when the active tab is already saved."
+  },
+  "saveBtnLabelSaveCurrentPage": {
+    "message": "Save Current Page",
+    "description": "Visible label on the popup's Save button in its normal, savable state."
+  },
+  "usageSavedNearLimit": {
+    "message": "$COUNT$ / $MAX$ saved — $PERCENT$% full. Export a backup from Options soon.",
+    "description": "Storage usage line in the Manager once storage is near its quota.",
+    "placeholders": {
+      "count": { "content": "$1", "example": "480" },
+      "max": { "content": "$2", "example": "512" },
+      "percent": { "content": "$3", "example": "93" }
+    }
+  },
+  "usageSaved": {
+    "message": "$COUNT$ saved",
+    "description": "Storage usage line in the Manager under normal storage levels.",
+    "placeholders": { "count": { "content": "$1", "example": "24" } }
+  },
+  "statusSavedNearLimit": {
+    "message": "Saved! Storage $PERCENT$% full — export a backup soon.",
+    "description": "Popup status line after a save that crosses the near-quota threshold.",
+    "placeholders": { "percent": { "content": "$1", "example": "92" } }
+  },
+  "statusSavedExclaim": {
+    "message": "Saved!",
+    "description": "Popup status line after a successful save."
+  },
+  "statusAlreadySaved": {
+    "message": "Already saved.",
+    "description": "Popup status line when the current page was already on the list."
+  },
+  "statusCouldntSavePage": {
+    "message": "Couldn't save this page.",
+    "description": "Popup status line fallback when a save fails without a specific error message."
+  },
+  "selectModeExit": {
+    "message": "Exit selection",
+    "description": "Title/tooltip on the Manager's select-mode toggle button, while select mode is active."
+  },
+  "selectModeEnter": {
+    "message": "Select multiple",
+    "description": "Title/tooltip on the Manager's select-mode toggle button, while select mode is inactive."
+  },
+  "bulkBarCount": {
+    "message": "$COUNT$ selected",
+    "description": "Count shown in the Manager's bulk-action bar.",
+    "placeholders": { "count": { "content": "$1", "example": "5" } }
+  },
+  "bulkBarClear": {
+    "message": "Clear",
+    "description": "Bulk-action bar's select-all button label, when every visible item is already selected."
+  },
+  "bulkBarSelectAll": {
+    "message": "Select all",
+    "description": "Bulk-action bar's select-all button label, when not every visible item is selected."
+  },
+  "bulkMarkedRead": {
+    "message": "Marked $COUNT$ as read.",
+    "description": "Popup status line after a bulk mark-as-read action.",
+    "placeholders": { "count": { "content": "$1", "example": "5" } }
+  },
+  "bulkDeletedSingular": {
+    "message": "Deleted 1 item.",
+    "description": "Popup status line after a bulk delete of exactly one item."
+  },
+  "bulkDeletedPlural": {
+    "message": "Deleted $COUNT$ items.",
+    "description": "Popup status line after a bulk delete of more than one item.",
+    "placeholders": { "count": { "content": "$1", "example": "5" } }
+  }
+}

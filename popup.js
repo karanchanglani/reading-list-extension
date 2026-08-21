@@ -242,7 +242,7 @@ function renderList() {
       const tagsInput = document.createElement("input");
       tagsInput.type = "text";
       tagsInput.className = "tags-input";
-      tagsInput.placeholder = "tag1, tag2";
+      tagsInput.placeholder = chrome.i18n.getMessage("tagsInputPlaceholder");
       tagsInput.value = (item.tags || []).join(", ");
       tagsInput.addEventListener("click", (event) => event.stopPropagation());
       tagsInput.addEventListener("mousedown", (event) => event.stopPropagation());
@@ -291,7 +291,7 @@ function renderList() {
         const readerBtn = document.createElement("button");
         readerBtn.className = "reader-btn";
         readerBtn.type = "button";
-        readerBtn.title = "Open reader view (cached, works even if the page is offline)";
+        readerBtn.title = chrome.i18n.getMessage("readerBtnTitle");
         readerBtn.appendChild(createIcon("reader"));
         readerBtn.addEventListener("click", (event) => {
           event.stopPropagation();
@@ -304,7 +304,7 @@ function renderList() {
       tagBtn.className = "tag-btn";
       tagBtn.classList.toggle("is-active", editingTagsId === item.id);
       tagBtn.type = "button";
-      tagBtn.title = "Edit tags";
+      tagBtn.title = chrome.i18n.getMessage("tagBtnTitle");
       tagBtn.appendChild(createIcon("tag"));
       tagBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -316,7 +316,9 @@ function renderList() {
       readBtn.className = "read-btn";
       readBtn.classList.toggle("is-active", Boolean(item.readStatus));
       readBtn.type = "button";
-      readBtn.title = item.readStatus ? "Mark as unread" : "Mark as read";
+      readBtn.title = item.readStatus
+        ? chrome.i18n.getMessage("markAsUnread")
+        : chrome.i18n.getMessage("markAsRead");
       readBtn.appendChild(createIcon("check"));
       readBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -327,7 +329,7 @@ function renderList() {
       const removeBtn = document.createElement("button");
       removeBtn.className = "remove-btn";
       removeBtn.type = "button";
-      removeBtn.title = "Delete";
+      removeBtn.title = chrome.i18n.getMessage("deleteBtnTitle");
       removeBtn.appendChild(createIcon("trash"));
       removeBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -369,20 +371,24 @@ async function persistDomOrder() {
 function updateSaveButtonState() {
   if (!currentTab || !currentTab.url) {
     saveBtn.disabled = true;
-    saveBtn.title = "No active page to save";
+    saveBtn.title = chrome.i18n.getMessage("saveBtnNoActivePage");
     return;
   }
   if (!/^https?:/i.test(currentTab.url)) {
     saveBtn.disabled = true;
-    saveBtn.title = "This page can't be saved";
+    saveBtn.title = chrome.i18n.getMessage("saveBtnCantSavePage");
     return;
   }
 
   const alreadySaved = Boolean(findByUrl(allItems, currentTab.url));
   saveBtn.disabled = alreadySaved;
   saveBtn.classList.toggle("is-saved", alreadySaved);
-  saveBtn.title = alreadySaved ? "Already saved" : "Save the current page";
-  saveBtnLabel.textContent = alreadySaved ? "Saved" : "Save Current Page";
+  saveBtn.title = alreadySaved
+    ? chrome.i18n.getMessage("saveBtnAlreadySaved")
+    : chrome.i18n.getMessage("saveBtnSaveCurrentPage");
+  saveBtnLabel.textContent = alreadySaved
+    ? chrome.i18n.getMessage("saveBtnLabelSaved")
+    : chrome.i18n.getMessage("saveBtnLabelSaveCurrentPage");
 }
 
 /** Shows a quiet "N saved" count, switching to a warning once storage is nearly full. */
@@ -395,8 +401,8 @@ function renderUsage(usage) {
   usageInfoEl.classList.add("is-visible");
   usageInfoEl.classList.toggle("is-warning", usage.isNearLimit);
   usageInfoEl.textContent = usage.isNearLimit
-    ? `${usage.itemCount} / ${usage.maxItems} saved — ${usage.percentUsed}% full. Export a backup from Options soon.`
-    : `${usage.itemCount} saved`;
+    ? chrome.i18n.getMessage("usageSavedNearLimit", [String(usage.itemCount), String(usage.maxItems), String(usage.percentUsed)])
+    : chrome.i18n.getMessage("usageSaved", [String(usage.itemCount)]);
 }
 
 async function refreshList() {
@@ -428,14 +434,18 @@ async function saveCurrentPage() {
     });
 
     if (!response?.ok) {
-      showStatus(response?.error || "Couldn't save this page.");
+      showStatus(response?.error || chrome.i18n.getMessage("statusCouldntSavePage"));
       return;
     }
 
     if (response.added && response.usage?.isNearLimit) {
-      showStatus(`Saved! Storage ${response.usage.percentUsed}% full — export a backup soon.`, 3200);
+      showStatus(chrome.i18n.getMessage("statusSavedNearLimit", [String(response.usage.percentUsed)]), 3200);
     } else {
-      showStatus(response.added ? "Saved!" : "Already saved.");
+      showStatus(
+        response.added
+          ? chrome.i18n.getMessage("statusSavedExclaim")
+          : chrome.i18n.getMessage("statusAlreadySaved")
+      );
     }
     await refreshList();
   } finally {
@@ -489,7 +499,9 @@ function toggleSelected(id, isSelected) {
 function setSelectMode(enabled) {
   selectMode = enabled;
   selectModeBtn.classList.toggle("is-active", enabled);
-  selectModeBtn.title = enabled ? "Exit selection" : "Select multiple";
+  selectModeBtn.title = enabled
+    ? chrome.i18n.getMessage("selectModeExit")
+    : chrome.i18n.getMessage("selectModeEnter");
   if (!enabled) selectedIds.clear();
   renderList();
 }
@@ -498,9 +510,11 @@ function updateBulkBar(visibleItems) {
   bulkBarEl.classList.toggle("is-visible", selectMode);
   if (!selectMode) return;
 
-  bulkBarCountEl.textContent = `${selectedIds.size} selected`;
+  bulkBarCountEl.textContent = chrome.i18n.getMessage("bulkBarCount", [String(selectedIds.size)]);
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id));
-  bulkBarSelectAllBtn.textContent = allVisibleSelected ? "Clear" : "Select all";
+  bulkBarSelectAllBtn.textContent = allVisibleSelected
+    ? chrome.i18n.getMessage("bulkBarClear")
+    : chrome.i18n.getMessage("bulkBarSelectAll");
   bulkBarMarkReadBtn.disabled = selectedIds.size === 0;
   bulkBarDeleteBtn.disabled = selectedIds.size === 0;
 }
@@ -519,7 +533,7 @@ bulkBarSelectAllBtn.addEventListener("click", () => {
 bulkBarMarkReadBtn.addEventListener("click", async () => {
   if (selectedIds.size === 0) return;
   allItems = await bulkUpdateReadingListItems([...selectedIds], { readStatus: true });
-  showStatus(`Marked ${selectedIds.size} as read.`);
+  showStatus(chrome.i18n.getMessage("bulkMarkedRead", [String(selectedIds.size)]));
   selectedIds.clear();
   renderList();
 });
@@ -529,7 +543,11 @@ bulkBarDeleteBtn.addEventListener("click", async () => {
   const ids = [...selectedIds];
   allItems = await removeManyFromReadingList(ids);
   await Promise.all(ids.map((id) => removeArticleSnapshot(id)));
-  showStatus(`Deleted ${ids.length} item${ids.length === 1 ? "" : "s"}.`);
+  showStatus(
+    ids.length === 1
+      ? chrome.i18n.getMessage("bulkDeletedSingular")
+      : chrome.i18n.getMessage("bulkDeletedPlural", [String(ids.length)])
+  );
   selectedIds.clear();
   renderTagFilter();
   renderList();

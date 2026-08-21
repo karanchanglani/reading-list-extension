@@ -171,6 +171,7 @@ options.html/js    — the options page (entry-point toggles, shortcut link, exp
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
 reader.html/js     — the reader view, rendering a cached article snapshot
 welcome.html       — first-run onboarding walkthrough, opened once on install
+_locales/en/       — UI strings used by background.js, content.js, options.js, and popup.js, via chrome.i18n
 vendor/            — Mozilla's Readability, vendored as a plain script (no build step in this project)
 icons/             — toolbar and extension icons
 ```

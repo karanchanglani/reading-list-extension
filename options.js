@@ -11,7 +11,7 @@ const statusEl = document.getElementById("status");
 let statusHideTimer = null;
 
 function showSaved() {
-  statusEl.textContent = "Saved";
+  statusEl.textContent = chrome.i18n.getMessage("statusSaved");
   statusEl.classList.add("is-visible");
   clearTimeout(statusHideTimer);
   statusHideTimer = setTimeout(() => {
@@ -161,21 +161,21 @@ importInput.addEventListener("change", async () => {
   if (!rawItems) rawItems = parsePocketCsv(text);
 
   if (!rawItems || rawItems.length === 0) {
-    showImportStatus("Couldn't find any articles in that file — expected a Read Later JSON export or a Pocket CSV export.", true);
+    showImportStatus(chrome.i18n.getMessage("importErrorNoArticles"), true);
     importInput.value = "";
     return;
   }
 
   try {
     const { added, skipped, total, usage } = await importReadingListItems(rawItems);
-    const summary = `${added} added, ${skipped} skipped (already on your list, or missing a valid URL) — ${total} in the file.`;
+    const summary = chrome.i18n.getMessage("importSummary", [String(added), String(skipped), String(total)]);
     if (usage?.isNearLimit) {
-      showImportStatus(`${summary} Storage is now ${usage.percentUsed}% full — consider archiving old articles.`, true);
+      showImportStatus(chrome.i18n.getMessage("importSummaryNearLimit", [summary, String(usage.percentUsed)]), true);
     } else {
       showImportStatus(summary);
     }
   } catch (error) {
-    showImportStatus(`Import failed: ${error.message}`, true);
+    showImportStatus(chrome.i18n.getMessage("importFailed", [error.message]), true);
   } finally {
     importInput.value = "";
   }
