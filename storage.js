@@ -76,6 +76,7 @@ export async function getStorageUsage() {
  * @property {string} favIconUrl
  * @property {number} addedAt - epoch ms
  * @property {boolean} readStatus - false = unread, true = read
+ * @property {boolean} hasSnapshot - true if a readable content-cache.js snapshot exists for this id
  */
 
 function itemKey(id) {
@@ -83,7 +84,7 @@ function itemKey(id) {
 }
 
 /**
- * @param {{ url: string, title?: string, favIconUrl?: string }} source
+ * @param {{ url: string, title?: string, favIconUrl?: string, hasSnapshot?: boolean }} source
  * @returns {ReadingListItem}
  */
 export function createReadingListItem(source) {
@@ -94,6 +95,7 @@ export function createReadingListItem(source) {
     favIconUrl: source.favIconUrl || "",
     addedAt: Date.now(),
     readStatus: false,
+    hasSnapshot: Boolean(source.hasSnapshot),
   };
 }
 
@@ -173,7 +175,7 @@ export function findByUrl(items, url) {
 
 /**
  * Adds a page to the reading list, skipping it if the URL is already saved.
- * @param {{ url: string, title?: string, favIconUrl?: string }} source
+ * @param {{ url: string, title?: string, favIconUrl?: string, hasSnapshot?: boolean }} source
  * @returns {Promise<{ added: boolean, item: ReadingListItem, list: ReadingListItem[], usage: StorageUsage }>}
  */
 export async function addToReadingList(source) {

@@ -42,7 +42,7 @@
     {
       "matches": ["http://*/*", "https://*/*"],
       "css": ["content.css"],
-      "js": ["content.js"],
+      "js": ["vendor/readability.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

@@ -162,6 +162,7 @@
           url: location.href,
           title: document.title,
           favIconUrl: getFaviconUrl(),
+          snapshot: extractArticleSnapshot(),
         },
       },
       (response) => {
@@ -274,6 +275,48 @@
       document.querySelector('link[rel~="icon"][href]') ||
       document.querySelector('link[rel="shortcut icon"][href]');
     return link?.href || `${location.origin}/favicon.ico`;
+  }
+
+  const READING_WPM = 200;
+
+  /**
+   * Extracts a readable snapshot of the current page via Readability (see
+   * vendor/readability.js), for the Reader View. Returns null — a normal,
+   * expected outcome, not an error — if extraction isn't possible: the
+   * library failed to load, the page has no clear "article" content (e.g. a
+   * search results page, a dashboard), or parsing throws. Callers treat a
+   * null snapshot the same as any other save: the URL/title/favicon still
+   * get saved either way, just without a cached reader view.
+   * @returns {import("./content-cache.js").ArticleSnapshot | null}
+   */
+  function extractArticleSnapshot() {
+    if (typeof Readability !== "function") return null;
+
+    try {
+      // Readability mutates the document it's given (strips elements as it
+      // works), so parse a clone rather than the live page the user is
+      // reading and might still be interacting with.
+      const clone = document.cloneNode(true);
+      const article = new Readability(clone).parse();
+      if (!article?.content || !article.textContent?.trim()) return null;
+
+      const wordCount = article.textContent.trim().split(/\s+/).length;
+
+      return {
+        title: article.title || document.title,
+        byline: article.byline || null,
+        siteName: article.siteName || null,
+        content: article.content,
+        textContent: article.textContent,
+        excerpt: article.excerpt || "",
+        length: article.length || article.textContent.length,
+        readingTimeMinutes: Math.max(1, Math.round(wordCount / READING_WPM)),
+        cachedAt: Date.now(),
+      };
+    } catch (error) {
+      console.error("[Read Later] Article extraction failed:", error);
+      return null;
+    }
   }
 
   // Toast for entry points with no on-page feedback of their own (the

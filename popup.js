@@ -6,6 +6,7 @@ import {
   findByUrl,
   getStorageUsage,
 } from "./storage.js";
+import { removeArticleSnapshot } from "./content-cache.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -25,6 +26,11 @@ const ICON_SHAPES = {
     '<circle cx="15" cy="6" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
     '<circle cx="15" cy="12" r="1.3" style="fill:currentColor;stroke:none"></circle>' +
     '<circle cx="15" cy="18" r="1.3" style="fill:currentColor;stroke:none"></circle>',
+  reader:
+    '<rect x="4" y="3" width="16" height="18" rx="2"></rect>' +
+    '<line x1="8" y1="8" x2="16" y2="8"></line>' +
+    '<line x1="8" y1="12" x2="16" y2="12"></line>' +
+    '<line x1="8" y1="16" x2="13" y2="16"></line>',
 };
 
 function createIcon(name) {
@@ -155,7 +161,22 @@ function renderList() {
       chrome.tabs.create({ url: item.url });
     });
 
-    li.append(grip, favicon, info, readBtn, removeBtn);
+    const buttons = [];
+    if (item.hasSnapshot) {
+      const readerBtn = document.createElement("button");
+      readerBtn.className = "reader-btn";
+      readerBtn.type = "button";
+      readerBtn.title = "Open reader view (cached, works even if the page is offline)";
+      readerBtn.appendChild(createIcon("reader"));
+      readerBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        chrome.tabs.create({ url: `reader.html?id=${encodeURIComponent(item.id)}` });
+      });
+      buttons.push(readerBtn);
+    }
+    buttons.push(readBtn, removeBtn);
+
+    li.append(grip, favicon, info, ...buttons);
     listEl.appendChild(li);
   }
 }
@@ -261,6 +282,7 @@ async function saveCurrentPage() {
 
 async function removeItem(id) {
   allItems = await removeFromReadingList(id);
+  await removeArticleSnapshot(id);
   renderList();
   updateSaveButtonState();
   renderUsage(await getStorageUsage());

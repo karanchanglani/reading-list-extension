@@ -9,6 +9,7 @@ import {
   migrateLegacyStorage,
   getSettings,
 } from "./storage.js";
+import { saveArticleSnapshot, removeArticleSnapshot } from "./content-cache.js";
 
 const BADGE_IDLE_COLOR = "#4f46e5"; // indigo — normal unread count
 const BADGE_SUCCESS_COLOR = "#16a34a"; // green — item added
@@ -306,7 +307,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  removeFromReadingList(message.id)
+  Promise.all([removeFromReadingList(message.id), removeArticleSnapshot(message.id)])
     .then(() => sendResponse({ ok: true }))
     .catch((error) => sendResponse({ ok: false, error: error.message }));
 
@@ -323,10 +324,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     url: source.url,
     title: source.title,
     favIconUrl: source.favIconUrl,
+    hasSnapshot: Boolean(source.snapshot),
   };
 
   addToReadingList(page)
-    .then(({ added, item, list, usage }) => {
+    .then(async ({ added, item, list, usage }) => {
+      // Only cache the snapshot for a genuinely new save — re-saving an
+      // already-saved page doesn't refresh its cached content in this
+      // first pass, so a stale re-extraction here can't overwrite it.
+      if (added && source.snapshot) {
+        await saveArticleSnapshot(item.id, source.snapshot).catch((error) => {
+          console.error("[Read Later] Failed to cache article snapshot:", error);
+        });
+      }
+
       if (added) {
         flashBadge(successFeedback(usage).badgeText, BADGE_SUCCESS_COLOR);
       } else {

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Read Later — Reader</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #4f46e5;
+      --accent-dark: #4338ca;
+      --bg: #ffffff;
+      --bg-subtle: #f9fafb;
+      --fg: #1f2430;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      z-index: 1;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .brand svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #live-link {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+    }
+    #live-link:hover { background: var(--accent); color: #fff; }
+    #live-link svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    #meta { display: none; }
+    #meta.is-visible { display: block; }
+    #article-title {
+      font-size: 26px;
+      line-height: 1.3;
+      margin: 0 0 10px;
+    }
+    #article-subline {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    #article-subline span:not(:last-child)::after {
+      content: "·";
+      margin: 0 6px;
+      color: var(--border);
+    }
+
+    #article-content {
+      font-size: 16.5px;
+      line-height: 1.7;
+    }
+    #article-content p { margin: 0 0 1.1em; }
+    #article-content h1, #article-content h2, #article-content h3 {
+      line-height: 1.35;
+      margin: 1.6em 0 0.6em;
+    }
+    #article-content img, #article-content figure, #article-content video {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 0.4em 0;
+    }
+    #article-content a { color: var(--accent); }
+    #article-content blockquote {
+      margin: 1em 0;
+      padding: 4px 18px;
+      border-left: 3px solid var(--accent);
+      color: var(--muted);
+      background: var(--bg-subtle);
+      border-radius: 0 6px 6px 0;
+    }
+    #article-content pre {
+      background: var(--bg-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    #article-content code {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      background: var(--bg-subtle);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+    #article-content ul, #article-content ol { padding-left: 1.4em; }
+
+    #state {
+      max-width: 480px;
+      margin: 80px auto 0;
+      padding: 0 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    #state a { color: var(--accent); font-weight: 600; }
+    #state[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="13" height="18" rx="2"></rect>
+        <line x1="7" y1="3" x2="7" y2="21"></line>
+        <line x1="20" y1="6" x2="20" y2="14"></line>
+        <line x1="16" y1="10" x2="24" y2="10"></line>
+      </svg>
+      Read Later — Reader
+    </div>
+    <a id="live-link" href="#" target="_blank" rel="noopener" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="9" width="12" height="12" rx="1"></rect>
+        <polyline points="10 3 21 3 21 14"></polyline>
+        <line x1="21" y1="3" x2="10" y2="14"></line>
+      </svg>
+      View live page
+    </a>
+  </header>
+
+  <main>
+    <div id="meta">
+      <h1 id="article-title"></h1>
+      <p id="article-subline"></p>
+      <div id="article-content"></div>
+    </div>
+    <p id="state" hidden></p>
+  </main>
+
+  <script type="module" src="reader.js"></script>
+</body>
+</html>
