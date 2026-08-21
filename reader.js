@@ -41,9 +41,23 @@ async function load() {
   liveLinkEl.hidden = false;
 
   if (!snapshot) {
+    // item.url can come from an imported file (JSON/Pocket CSV), not just a
+    // real browser-normalized location.href, so it isn't trusted input.
+    // Building the link via DOM (safe .href assignment) and reading back
+    // .outerHTML lets the browser's own serializer escape it correctly for
+    // an HTML attribute — plain string interpolation here would only be
+    // safe against text-node injection, not the "break out of the href
+    // attribute" case, since a raw double-quote in the URL wouldn't be
+    // escaped by a text-content-oriented helper like escapeHtml() below.
+    const liveLink = document.createElement("a");
+    liveLink.href = item.url;
+    liveLink.target = "_blank";
+    liveLink.rel = "noopener";
+    liveLink.textContent = "Open the live page instead";
+
     showState(
       `No cached content for this article — it may have been saved before Reader View was added, or extraction ` +
-        `didn't work for this page. <a href="${item.url}" target="_blank" rel="noopener">Open the live page instead</a>.`
+        `didn't work for this page. ${liveLink.outerHTML}.`
     );
     return;
   }

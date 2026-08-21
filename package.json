@@ -4,9 +4,11 @@
   "description": "Chrome extension (Manifest V3) for saving articles to a synced reading list.",
   "scripts": {
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "lint:firefox": "web-ext lint --source-dir=. --ignore-files=tests/** --ignore-files=node_modules/**"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1"
+    "@playwright/test": "^1.62.1",
+    "web-ext": "^10.6.0"
   }
 }

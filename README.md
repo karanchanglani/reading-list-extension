@@ -179,6 +179,8 @@ npm test
 
 Runs automatically on every push and pull request via [GitHub Actions](.github/workflows/test.yml). See `tests/fixtures.js` for how the extension gets loaded (a persistent browser profile with `--load-extension`, in Chromium's newer headless mode — Playwright's default headless mode doesn't support loading extensions at all).
 
+`npm run lint:firefox` runs Mozilla's own [`web-ext lint`](https://github.com/mozilla/web-ext) — the same linter AMO submission uses — against the manifest, also wired into CI. See [FIREFOX_COMPATIBILITY.md](FIREFOX_COMPATIBILITY.md) for the full Firefox compatibility audit: what was changed, how it was verified (including an actual temporary install into real Firefox), and what's still unverified.
+
 ## Permissions used
 
 | Permission | Why |
