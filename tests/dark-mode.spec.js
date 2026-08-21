@@ -16,6 +16,11 @@ test.describe("Dark mode", () => {
     await options.goto(`chrome-extension://${extensionId}/options.html`, { waitUntil: "load" });
     await expect(options.locator("body")).toHaveCSS("background-color", "rgb(27, 28, 33)");
 
+    const reader = await context.newPage();
+    await reader.emulateMedia({ colorScheme: "dark" });
+    await reader.goto(`chrome-extension://${extensionId}/reader.html?id=nonexistent`, { waitUntil: "load" });
+    await expect(reader.locator("body")).toHaveCSS("background-color", "rgb(27, 28, 33)");
+
     // Light mode still renders the original light surface.
     const popupLight = await context.newPage();
     await popupLight.emulateMedia({ colorScheme: "light" });

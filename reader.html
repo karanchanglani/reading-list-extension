@@ -13,6 +13,22 @@
       --fg: #1f2430;
       --muted: #6b7280;
       --border: #e5e7eb;
+      --reader-font-size: 16.5px;
+      --reader-line-height: 1.7;
+      --reader-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --reader-max-width: 680px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b1c21;
+        --bg-subtle: #232429;
+        --fg: #e5e7eb;
+        --muted: #9199a8;
+        --border: #34363e;
+      }
+      #article-content img {
+        filter: brightness(0.85); /* keep bright photos from glaring against a dark page */
+      }
     }
     * { box-sizing: border-box; }
     body {
@@ -59,8 +75,60 @@
     #live-link:hover { background: var(--accent); color: #fff; }
     #live-link svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
+    .header-actions { display: flex; align-items: center; gap: 8px; position: relative; }
+    #reader-settings-btn {
+      flex: none;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #reader-settings-btn.is-visible { display: flex; }
+    #reader-settings-btn:hover, #reader-settings-btn.is-active { color: var(--accent); border-color: var(--accent); }
+    #reader-settings-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 2;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      padding: 12px 14px;
+      min-width: 190px;
+    }
+    #reader-settings-panel.is-visible { display: block; }
+    .reader-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .reader-setting-row:last-child { margin-bottom: 0; }
+    .reader-setting-row select {
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--fg);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 6px;
+    }
+
     main {
-      max-width: 680px;
+      max-width: var(--reader-max-width);
       margin: 0 auto;
       padding: 32px 24px 80px;
     }
@@ -86,8 +154,9 @@
     }
 
     #article-content {
-      font-size: 16.5px;
-      line-height: 1.7;
+      font-size: var(--reader-font-size);
+      line-height: var(--reader-line-height);
+      font-family: var(--reader-font-family);
     }
     #article-content p { margin: 0 0 1.1em; }
     #article-content h1, #article-content h2, #article-content h3 {
@@ -149,14 +218,43 @@
       </svg>
       Read Later — Reader
     </div>
-    <a id="live-link" href="#" target="_blank" rel="noopener" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="9" width="12" height="12" rx="1"></rect>
-        <polyline points="10 3 21 3 21 14"></polyline>
-        <line x1="21" y1="3" x2="10" y2="14"></line>
-      </svg>
-      View live page
-    </a>
+    <div class="header-actions">
+      <a id="live-link" href="#" target="_blank" rel="noopener" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="9" width="12" height="12" rx="1"></rect>
+          <polyline points="10 3 21 3 21 14"></polyline>
+          <line x1="21" y1="3" x2="10" y2="14"></line>
+        </svg>
+        View live page
+      </a>
+      <button id="reader-settings-btn" type="button" aria-label="Reading settings" title="Reading settings">Aa</button>
+      <div id="reader-settings-panel">
+        <div class="reader-setting-row">
+          <label for="reader-font-size-select">Size</label>
+          <select id="reader-font-size-select">
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+            <option value="xlarge">Extra large</option>
+          </select>
+        </div>
+        <div class="reader-setting-row">
+          <label for="reader-font-family-select">Font</label>
+          <select id="reader-font-family-select">
+            <option value="sans">Sans-serif</option>
+            <option value="serif">Serif</option>
+          </select>
+        </div>
+        <div class="reader-setting-row">
+          <label for="reader-width-select">Width</label>
+          <select id="reader-width-select">
+            <option value="narrow">Narrow</option>
+            <option value="default">Default</option>
+            <option value="wide">Wide</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </header>
 
   <main>

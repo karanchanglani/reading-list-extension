@@ -6,7 +6,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 
 - One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
 - Tag any saved item with your own labels, filter the list by tag, and use select mode to bulk mark-read or delete multiple items at once
-- Automatic dark mode across the popup, options page, and the on-page floating button/toast, following your OS/browser color scheme
+- Automatic dark mode across the popup, options page, reader view, and the on-page floating button/toast, following your OS/browser color scheme
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
@@ -100,6 +100,8 @@ When you save a page with the **floating button**, Read Later also extracts a cl
 
 - Articles with a cached copy show a small document icon in the Reading List Manager — click it to open the reader view in a new tab.
 - The reader view shows title, byline, site name, an estimated reading time, and the save date, followed by the article text and a "View live page" link back to the original.
+- **Reading preferences** — the "Aa" button in the reader view opens font size (Small–Extra large), font (Sans-serif/Serif), and column width (Narrow/Default/Wide) controls. Your choice applies to every article and is remembered across sessions.
+- The reader view follows your OS/browser dark mode setting, same as the popup and options page.
 
 > **Only the floating button captures this, for now.** Saving via the keyboard shortcut, the right-click menu, or the popup's "Save Current Page" button still saves the link/title/favicon as before, just without a cached copy — those entry points don't run inside the page at save time the way the floating button does, and extending capture to them would mean requesting broader page-content permissions, a bigger decision than adding the feature itself.
 

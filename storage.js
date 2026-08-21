@@ -18,16 +18,26 @@ const LEGACY_STORAGE_KEY = "readingList"; // old single-blob format
 
 /** @typedef {"manual" | "newest" | "oldest" | "unread" | "az"} SortMode */
 
+/** @typedef {"small" | "medium" | "large" | "xlarge"} ReaderFontSize */
+/** @typedef {"sans" | "serif"} ReaderFontFamily */
+/** @typedef {"narrow" | "default" | "wide"} ReaderWidth */
+
 /**
  * @typedef {Object} Settings
  * @property {boolean} fabEnabled - show the on-page floating save button
  * @property {boolean} contextMenuEnabled - show "Add link/page to Reading List" on right-click
  * @property {SortMode} sortMode - how the popup's Reading List Manager orders items
+ * @property {ReaderFontSize} readerFontSize - reader.html article text size
+ * @property {ReaderFontFamily} readerFontFamily - reader.html article typeface
+ * @property {ReaderWidth} readerWidth - reader.html article column width
  */
 export const DEFAULT_SETTINGS = {
   fabEnabled: true,
   contextMenuEnabled: true,
   sortMode: "manual",
+  readerFontSize: "medium",
+  readerFontFamily: "sans",
+  readerWidth: "default",
 };
 
 // chrome.storage.sync hard limits (see chrome.storage.sync.QUOTA_BYTES*).
