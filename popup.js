@@ -1,6 +1,8 @@
 import {
   getReadingList,
   removeFromReadingList,
+  removeManyFromReadingList,
+  bulkUpdateReadingListItems,
   updateReadingListItem,
   reorderReadingList,
   findByUrl,
@@ -31,6 +33,9 @@ const ICON_SHAPES = {
     '<line x1="8" y1="8" x2="16" y2="8"></line>' +
     '<line x1="8" y1="12" x2="16" y2="12"></line>' +
     '<line x1="8" y1="16" x2="13" y2="16"></line>',
+  tag:
+    '<path d="M12 2h7a1 1 0 0 1 1 1v7a1 1 0 0 1-.29.71l-9 9a1 1 0 0 1-1.42 0l-7-7a1 1 0 0 1 0-1.42l9-9A1 1 0 0 1 12 2Z"></path>' +
+    '<circle cx="15.5" cy="7.5" r="1.3" style="fill:currentColor;stroke:none"></circle>',
 };
 
 function createIcon(name) {
@@ -43,20 +48,35 @@ function createIcon(name) {
 }
 
 const optionsBtn = document.getElementById("options-btn");
+const selectModeBtn = document.getElementById("select-mode-btn");
 const saveBtn = document.getElementById("save-btn");
 const saveBtnLabel = document.getElementById("save-btn-label");
 const statusEl = document.getElementById("status");
 const searchInput = document.getElementById("search-input");
 const searchClearBtn = document.getElementById("search-clear");
+const tagFilterEl = document.getElementById("tag-filter");
 const listEl = document.getElementById("list");
 const emptyStateEl = document.getElementById("empty-state");
 const noResultsEl = document.getElementById("no-results");
 const usageInfoEl = document.getElementById("usage-info");
+const bulkBarEl = document.getElementById("bulk-bar");
+const bulkBarCountEl = document.getElementById("bulk-bar-count");
+const bulkBarSelectAllBtn = document.getElementById("bulk-bar-select-all");
+const bulkBarMarkReadBtn = document.getElementById("bulk-bar-mark-read");
+const bulkBarDeleteBtn = document.getElementById("bulk-bar-delete");
 
 /** Full, unfiltered list — the source of truth for rendering. */
 let allItems = [];
 /** The active tab's info, prefetched on popup open so "+" saves instantly. */
 let currentTab = null;
+/** Tag chosen in the tag-filter row, or null for no tag filter. */
+let activeTagFilter = null;
+/** Id of the item currently showing its inline tag editor, or null. */
+let editingTagsId = null;
+/** Whether the bulk-select checkboxes/bar are showing. */
+let selectMode = false;
+/** Ids checked in select mode. */
+const selectedIds = new Set();
 
 function getDomain(url) {
   try {
@@ -77,20 +97,61 @@ function showStatus(message, ms = 1800) {
 
 function getFilteredItems() {
   const query = searchInput.value.trim().toLowerCase();
-  if (!query) return allItems;
-  return allItems.filter((item) => (item.title || "").toLowerCase().includes(query));
+  return allItems.filter((item) => {
+    if (query && !(item.title || "").toLowerCase().includes(query)) return false;
+    if (activeTagFilter && !(item.tags || []).includes(activeTagFilter)) return false;
+    return true;
+  });
+}
+
+/** Distinct tags across the full list, sorted for a stable chip order. */
+function getDistinctTags() {
+  const tags = new Set();
+  for (const item of allItems) {
+    for (const tag of item.tags || []) tags.add(tag);
+  }
+  return [...tags].sort((a, b) => a.localeCompare(b));
+}
+
+function renderTagFilter() {
+  const tags = getDistinctTags();
+  tagFilterEl.hidden = tags.length === 0;
+  if (tags.length === 0) {
+    activeTagFilter = null;
+    return;
+  }
+  // The active filter's tag may have been removed from every item since the
+  // last render (e.g. the last item wearing it got deleted or re-tagged).
+  if (activeTagFilter && !tags.includes(activeTagFilter)) activeTagFilter = null;
+
+  tagFilterEl.innerHTML = "";
+  for (const tag of tags) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "tag-chip";
+    chip.classList.toggle("is-active", tag === activeTagFilter);
+    chip.textContent = tag;
+    chip.addEventListener("click", () => {
+      activeTagFilter = activeTagFilter === tag ? null : tag;
+      renderTagFilter();
+      renderList();
+    });
+    tagFilterEl.appendChild(chip);
+  }
 }
 
 function renderList() {
   const query = searchInput.value.trim();
   const items = getFilteredItems();
   // Reordering a filtered subset doesn't map cleanly onto the full list's
-  // order, so dragging is only enabled when the whole list is showing.
-  const reorderable = !query;
+  // order, so dragging is only enabled when the whole, untagged-filtered
+  // list is showing and nothing else is mid-edit.
+  const reorderable = !query && !activeTagFilter && !selectMode && !editingTagsId;
+  const filtered = Boolean(query || activeTagFilter);
 
   listEl.innerHTML = "";
   emptyStateEl.hidden = allItems.length > 0;
-  noResultsEl.hidden = !(allItems.length > 0 && query && items.length === 0);
+  noResultsEl.hidden = !(allItems.length > 0 && filtered && items.length === 0);
 
   for (const item of items) {
     const li = document.createElement("li");
@@ -114,9 +175,23 @@ function renderList() {
       });
     }
 
-    const grip = document.createElement("span");
-    grip.className = "grip";
-    grip.appendChild(createIcon("grip"));
+    let leadingSlot;
+    if (selectMode) {
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "select-checkbox";
+      checkbox.checked = selectedIds.has(item.id);
+      checkbox.addEventListener("click", (event) => event.stopPropagation());
+      checkbox.addEventListener("change", () => {
+        toggleSelected(item.id, checkbox.checked);
+      });
+      leadingSlot = checkbox;
+    } else {
+      const grip = document.createElement("span");
+      grip.className = "grip";
+      grip.appendChild(createIcon("grip"));
+      leadingSlot = grip;
+    }
 
     const favicon = document.createElement("img");
     favicon.className = "favicon";
@@ -136,49 +211,109 @@ function renderList() {
     domain.textContent = getDomain(item.url);
     info.append(title, domain);
 
-    const readBtn = document.createElement("button");
-    readBtn.className = "read-btn";
-    readBtn.classList.toggle("is-active", Boolean(item.readStatus));
-    readBtn.type = "button";
-    readBtn.title = item.readStatus ? "Mark as unread" : "Mark as read";
-    readBtn.appendChild(createIcon("check"));
-    readBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      toggleRead(item.id, !item.readStatus);
-    });
-
-    const removeBtn = document.createElement("button");
-    removeBtn.className = "remove-btn";
-    removeBtn.type = "button";
-    removeBtn.title = "Delete";
-    removeBtn.appendChild(createIcon("trash"));
-    removeBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      removeItem(item.id);
-    });
+    if (editingTagsId === item.id) {
+      const tagsInput = document.createElement("input");
+      tagsInput.type = "text";
+      tagsInput.className = "tags-input";
+      tagsInput.placeholder = "tag1, tag2";
+      tagsInput.value = (item.tags || []).join(", ");
+      tagsInput.addEventListener("click", (event) => event.stopPropagation());
+      tagsInput.addEventListener("mousedown", (event) => event.stopPropagation());
+      tagsInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          tagsInput.blur();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          tagsInput.dataset.cancelled = "1";
+          tagsInput.blur();
+        }
+      });
+      tagsInput.addEventListener("blur", () => {
+        if (tagsInput.dataset.cancelled) {
+          cancelEditingTags();
+        } else {
+          void commitTagsEdit(item.id, tagsInput.value);
+        }
+      });
+      info.appendChild(tagsInput);
+      requestAnimationFrame(() => tagsInput.focus());
+    } else if (item.tags?.length) {
+      const tagChips = document.createElement("div");
+      tagChips.className = "tag-chips";
+      for (const tag of item.tags) {
+        const chip = document.createElement("span");
+        chip.className = "tag-chip";
+        chip.textContent = tag;
+        tagChips.appendChild(chip);
+      }
+      info.appendChild(tagChips);
+    }
 
     li.addEventListener("click", () => {
+      if (selectMode) {
+        toggleSelected(item.id, !selectedIds.has(item.id));
+        return;
+      }
       chrome.tabs.create({ url: item.url });
     });
 
     const buttons = [];
-    if (item.hasSnapshot) {
-      const readerBtn = document.createElement("button");
-      readerBtn.className = "reader-btn";
-      readerBtn.type = "button";
-      readerBtn.title = "Open reader view (cached, works even if the page is offline)";
-      readerBtn.appendChild(createIcon("reader"));
-      readerBtn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        chrome.tabs.create({ url: `reader.html?id=${encodeURIComponent(item.id)}` });
-      });
-      buttons.push(readerBtn);
-    }
-    buttons.push(readBtn, removeBtn);
+    if (!selectMode) {
+      if (item.hasSnapshot) {
+        const readerBtn = document.createElement("button");
+        readerBtn.className = "reader-btn";
+        readerBtn.type = "button";
+        readerBtn.title = "Open reader view (cached, works even if the page is offline)";
+        readerBtn.appendChild(createIcon("reader"));
+        readerBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          chrome.tabs.create({ url: `reader.html?id=${encodeURIComponent(item.id)}` });
+        });
+        buttons.push(readerBtn);
+      }
 
-    li.append(grip, favicon, info, ...buttons);
+      const tagBtn = document.createElement("button");
+      tagBtn.className = "tag-btn";
+      tagBtn.classList.toggle("is-active", editingTagsId === item.id);
+      tagBtn.type = "button";
+      tagBtn.title = "Edit tags";
+      tagBtn.appendChild(createIcon("tag"));
+      tagBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        editingTagsId === item.id ? cancelEditingTags() : startEditingTags(item.id);
+      });
+      buttons.push(tagBtn);
+
+      const readBtn = document.createElement("button");
+      readBtn.className = "read-btn";
+      readBtn.classList.toggle("is-active", Boolean(item.readStatus));
+      readBtn.type = "button";
+      readBtn.title = item.readStatus ? "Mark as unread" : "Mark as read";
+      readBtn.appendChild(createIcon("check"));
+      readBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleRead(item.id, !item.readStatus);
+      });
+      buttons.push(readBtn);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-btn";
+      removeBtn.type = "button";
+      removeBtn.title = "Delete";
+      removeBtn.appendChild(createIcon("trash"));
+      removeBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        removeItem(item.id);
+      });
+      buttons.push(removeBtn);
+    }
+
+    li.append(leadingSlot, favicon, info, ...buttons);
     listEl.appendChild(li);
   }
+
+  updateBulkBar(items);
 }
 
 /** Returns the `<li>` the dragged element should be inserted before, based on cursor y. */
@@ -239,6 +374,7 @@ function renderUsage(usage) {
 
 async function refreshList() {
   allItems = await getReadingList();
+  renderTagFilter();
   renderList();
   updateSaveButtonState();
   renderUsage(await getStorageUsage());
@@ -283,6 +419,8 @@ async function saveCurrentPage() {
 async function removeItem(id) {
   allItems = await removeFromReadingList(id);
   await removeArticleSnapshot(id);
+  selectedIds.delete(id);
+  renderTagFilter();
   renderList();
   updateSaveButtonState();
   renderUsage(await getStorageUsage());
@@ -292,6 +430,87 @@ async function toggleRead(id, readStatus) {
   allItems = await updateReadingListItem(id, { readStatus });
   renderList();
 }
+
+function startEditingTags(id) {
+  editingTagsId = id;
+  renderList();
+}
+
+function cancelEditingTags() {
+  editingTagsId = null;
+  renderList();
+}
+
+async function commitTagsEdit(id, rawValue) {
+  editingTagsId = null;
+  allItems = await updateReadingListItem(id, { tags: rawValue.split(",") });
+  renderTagFilter();
+  renderList();
+}
+
+function toggleSelected(id, isSelected) {
+  if (isSelected) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateBulkBar(getFilteredItems());
+  // Only the checkbox state needs to change, but re-rendering keeps
+  // "select all" style dependent styling (none today) accurate for free.
+  const li = listEl.querySelector(`li[data-id="${CSS.escape(id)}"]`);
+  const checkbox = li?.querySelector(".select-checkbox");
+  if (checkbox) checkbox.checked = isSelected;
+}
+
+function setSelectMode(enabled) {
+  selectMode = enabled;
+  selectModeBtn.classList.toggle("is-active", enabled);
+  selectModeBtn.title = enabled ? "Exit selection" : "Select multiple";
+  if (!enabled) selectedIds.clear();
+  renderList();
+}
+
+function updateBulkBar(visibleItems) {
+  bulkBarEl.classList.toggle("is-visible", selectMode);
+  if (!selectMode) return;
+
+  bulkBarCountEl.textContent = `${selectedIds.size} selected`;
+  const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id));
+  bulkBarSelectAllBtn.textContent = allVisibleSelected ? "Clear" : "Select all";
+  bulkBarMarkReadBtn.disabled = selectedIds.size === 0;
+  bulkBarDeleteBtn.disabled = selectedIds.size === 0;
+}
+
+bulkBarSelectAllBtn.addEventListener("click", () => {
+  const visibleItems = getFilteredItems();
+  const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id));
+  if (allVisibleSelected) {
+    for (const item of visibleItems) selectedIds.delete(item.id);
+  } else {
+    for (const item of visibleItems) selectedIds.add(item.id);
+  }
+  renderList();
+});
+
+bulkBarMarkReadBtn.addEventListener("click", async () => {
+  if (selectedIds.size === 0) return;
+  allItems = await bulkUpdateReadingListItems([...selectedIds], { readStatus: true });
+  showStatus(`Marked ${selectedIds.size} as read.`);
+  selectedIds.clear();
+  renderList();
+});
+
+bulkBarDeleteBtn.addEventListener("click", async () => {
+  if (selectedIds.size === 0) return;
+  const ids = [...selectedIds];
+  allItems = await removeManyFromReadingList(ids);
+  await Promise.all(ids.map((id) => removeArticleSnapshot(id)));
+  showStatus(`Deleted ${ids.length} item${ids.length === 1 ? "" : "s"}.`);
+  selectedIds.clear();
+  renderTagFilter();
+  renderList();
+  updateSaveButtonState();
+  renderUsage(await getStorageUsage());
+});
+
+selectModeBtn.addEventListener("click", () => setSelectMode(!selectMode));
 
 optionsBtn.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();

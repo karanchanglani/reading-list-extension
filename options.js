@@ -116,7 +116,7 @@ function parseCsv(text) {
  * into the shape importReadingListItems expects. Column order is looked up
  * by header name rather than assumed, so minor format variations still work.
  * @param {string} text
- * @returns {Array<{ url: string, title: string, addedAt: number, readStatus: boolean }> | null}
+ * @returns {Array<{ url: string, title: string, addedAt: number, readStatus: boolean, tags: string[] }> | null}
  */
 function parsePocketCsv(text) {
   const rows = parseCsv(text);
@@ -129,6 +129,7 @@ function parsePocketCsv(text) {
   const titleCol = header.indexOf("title");
   const timeCol = header.indexOf("time_added");
   const statusCol = header.indexOf("status");
+  const tagsCol = header.indexOf("tags");
 
   return rows.slice(1).map((row) => {
     const timeAddedSeconds = timeCol !== -1 ? Number(row[timeCol]) : NaN;
@@ -137,6 +138,8 @@ function parsePocketCsv(text) {
       title: titleCol !== -1 ? row[titleCol] : undefined,
       addedAt: Number.isFinite(timeAddedSeconds) ? timeAddedSeconds * 1000 : undefined,
       readStatus: statusCol !== -1 && /archive/i.test(row[statusCol] || ""),
+      // Pocket separates multiple tags on one row with "|".
+      tags: tagsCol !== -1 ? (row[tagsCol] || "").split("|").map((t) => t.trim()).filter(Boolean) : [],
     };
   });
 }

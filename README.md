@@ -5,6 +5,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 ## Features
 
 - One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
+- Tag any saved item with your own labels, filter the list by tag, and use select mode to bulk mark-read or delete multiple items at once
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
@@ -110,8 +111,10 @@ Open it by clicking the toolbar icon (or right-clicking it → **Open Reading Li
 - **Reader icon** — appears only on articles with a cached copy (see above); opens the reader view.
 - **Checkmark button** — toggles an item between read and unread. Read items get a strikethrough title and a dimmed favicon.
 - **Trash button** — removes the item from your list (and its cached reader copy, if it has one).
+- **Tag icon** — opens an inline editor to set an item's tags (comma-separated). Once any item has a tag, a filter row of tag chips appears above the list — click one to narrow the list to that tag, click again to clear it.
+- **Select mode** — the checkbox icon next to the search bar switches the list into multi-select: check items (clicking a row toggles its checkbox instead of opening it), then use the bar at the bottom to **Select all**/**Clear**, **Mark read**, or **Delete** everything you've checked at once.
 
-If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
+If your list is empty, you'll see a prompt to save your first page. If a search or tag filter doesn't match anything, you'll see a "no matches" message instead of an empty list.
 
 ### 8. Options — entry points, shortcuts & data
 

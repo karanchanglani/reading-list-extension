@@ -77,14 +77,26 @@ export async function getStorageUsage() {
  * @property {number} addedAt - epoch ms
  * @property {boolean} readStatus - false = unread, true = read
  * @property {boolean} hasSnapshot - true if a readable content-cache.js snapshot exists for this id
+ * @property {string[]} tags - user-assigned labels, e.g. ["recipes", "long-read"]
  */
 
 function itemKey(id) {
   return `${ITEM_KEY_PREFIX}${id}`;
 }
 
+/** @param {unknown} tags @returns {string[]} */
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  for (const raw of tags) {
+    const tag = typeof raw === "string" ? raw.trim() : "";
+    if (tag) seen.add(tag);
+  }
+  return [...seen];
+}
+
 /**
- * @param {{ url: string, title?: string, favIconUrl?: string, hasSnapshot?: boolean }} source
+ * @param {{ url: string, title?: string, favIconUrl?: string, hasSnapshot?: boolean, tags?: string[] }} source
  * @returns {ReadingListItem}
  */
 export function createReadingListItem(source) {
@@ -96,6 +108,7 @@ export function createReadingListItem(source) {
     addedAt: Date.now(),
     readStatus: false,
     hasSnapshot: Boolean(source.hasSnapshot),
+    tags: normalizeTags(source.tags),
   };
 }
 
@@ -232,8 +245,50 @@ export async function updateReadingListItem(id, changes) {
   const existing = result[itemKey(id)];
   if (!existing) return getItemsByIds(ids);
 
-  await chrome.storage.sync.set({ [itemKey(id)]: { ...existing, ...changes } });
+  const normalizedChanges = "tags" in changes ? { ...changes, tags: normalizeTags(changes.tags) } : changes;
+  await chrome.storage.sync.set({ [itemKey(id)]: { ...existing, ...normalizedChanges } });
   return getItemsByIds(ids);
+}
+
+/**
+ * Removes multiple items in a single batched write — used by the popup's
+ * bulk-delete action, so selecting dozens of items doesn't fire one
+ * chrome.storage.sync write per item (see importReadingListItems for the
+ * same MAX_WRITE_OPERATIONS_PER_MINUTE concern on the write side).
+ * @param {string[]} ids
+ * @returns {Promise<ReadingListItem[]>}
+ */
+export async function removeManyFromReadingList(ids) {
+  const idSet = new Set(ids);
+  const currentIds = await getIndex();
+  const newIds = currentIds.filter((id) => !idSet.has(id));
+
+  await chrome.storage.sync.remove(ids.map(itemKey));
+  await chrome.storage.sync.set({ [INDEX_KEY]: newIds });
+
+  return getItemsByIds(newIds);
+}
+
+/**
+ * Applies the same field changes (e.g. { readStatus: true }) to multiple
+ * items in a single batched write. See removeManyFromReadingList for why
+ * batching matters here.
+ * @param {string[]} ids
+ * @param {Partial<ReadingListItem>} changes
+ * @returns {Promise<ReadingListItem[]>}
+ */
+export async function bulkUpdateReadingListItems(ids, changes) {
+  const currentIds = await getIndex();
+  const existingItems = await getItemsByIds(ids);
+  const normalizedChanges = "tags" in changes ? { ...changes, tags: normalizeTags(changes.tags) } : changes;
+
+  const writes = {};
+  for (const item of existingItems) {
+    writes[itemKey(item.id)] = { ...item, ...normalizedChanges };
+  }
+  await chrome.storage.sync.set(writes);
+
+  return getItemsByIds(currentIds);
 }
 
 /**
@@ -277,7 +332,7 @@ export async function saveSettings(changes) {
  * addToReadingList in a loop, this does a single chrome.storage.sync.set
  * for the whole batch — a large import (hundreds of items) done one write
  * per item would risk tripping sync's MAX_WRITE_OPERATIONS_PER_MINUTE.
- * @param {Array<{ url?: string, title?: string, favIconUrl?: string, addedAt?: number, readStatus?: boolean }>} rawItems
+ * @param {Array<{ url?: string, title?: string, favIconUrl?: string, addedAt?: number, readStatus?: boolean, tags?: string[] }>} rawItems
  * @returns {Promise<{ added: number, skipped: number, total: number, usage: StorageUsage }>}
  */
 export async function importReadingListItems(rawItems) {
@@ -308,6 +363,7 @@ export async function importReadingListItems(rawItems) {
       favIconUrl: typeof raw.favIconUrl === "string" ? raw.favIconUrl : "",
       addedAt: Number.isFinite(raw.addedAt) ? raw.addedAt : Date.now(),
       readStatus: Boolean(raw.readStatus),
+      tags: normalizeTags(raw.tags),
     };
     const bytes = new TextEncoder().encode(JSON.stringify(item)).length;
     if (bytes > SYNC_QUOTA_BYTES_PER_ITEM) {

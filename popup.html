@@ -56,7 +56,8 @@
       gap: 6px;
       flex: none;
     }
-    #options-btn {
+    #options-btn,
+    #select-mode-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -68,8 +69,11 @@
       padding: 6px;
       border-radius: 6px;
     }
-    #options-btn:hover { color: var(--fg); background: rgba(79, 70, 229, 0.08); }
-    #options-btn svg.icon { width: 15px; height: 15px; }
+    #options-btn:hover,
+    #select-mode-btn:hover { color: var(--fg); background: rgba(79, 70, 229, 0.08); }
+    #options-btn svg.icon,
+    #select-mode-btn svg.icon { width: 15px; height: 15px; }
+    #select-mode-btn.is-active { color: var(--accent); background: rgba(79, 70, 229, 0.12); }
     #save-btn {
       display: flex;
       align-items: center;
@@ -132,6 +136,33 @@
     #search-clear:hover { color: var(--fg); }
     #search-clear[hidden] { display: none; }
 
+    /* tag filter row */
+    #tag-filter {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin: 0 14px 8px;
+      padding-bottom: 2px;
+    }
+    #tag-filter[hidden] { display: none; }
+    #tag-filter .tag-chip {
+      flex: none;
+      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #tag-filter .tag-chip:hover { color: var(--fg); }
+    #tag-filter .tag-chip.is-active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
     /* list */
     #list {
       list-style: none;
@@ -189,7 +220,33 @@
       text-overflow: ellipsis;
       margin-top: 1px;
     }
+    #list .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 3px;
+    }
+    #list .tag-chips .tag-chip {
+      font-size: 10px;
+      color: var(--accent);
+      background: rgba(79, 70, 229, 0.08);
+      padding: 1px 6px;
+      border-radius: 999px;
+    }
+    #list .tags-input {
+      width: 100%;
+      font-size: 11.5px;
+      font-family: inherit;
+      color: var(--fg);
+      background: var(--bg-subtle);
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      padding: 3px 6px;
+      margin-top: 3px;
+      outline: none;
+    }
     #list .reader-btn,
+    #list .tag-btn,
     #list .read-btn,
     #list .remove-btn {
       flex: none;
@@ -204,6 +261,8 @@
       border-radius: 5px;
     }
     #list .reader-btn:hover { color: var(--accent); background: rgba(79, 70, 229, 0.1); }
+    #list .tag-btn:hover,
+    #list .tag-btn.is-active { color: var(--accent); background: rgba(79, 70, 229, 0.1); }
     #list .read-btn:hover { color: var(--success); background: rgba(22, 163, 74, 0.1); }
     #list .read-btn.is-active { color: var(--success); }
     #list .remove-btn:hover { color: var(--danger); background: rgba(220, 38, 38, 0.1); }
@@ -212,6 +271,43 @@
       text-decoration: line-through;
     }
     #list li.is-read img.favicon { opacity: 0.5; }
+
+    /* bulk select mode */
+    #list .select-checkbox {
+      flex: none;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    #bulk-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 14px;
+      font-size: 11.5px;
+      color: var(--fg);
+      border-top: 1px solid var(--border);
+      background: var(--bg-subtle);
+    }
+    #bulk-bar.is-visible { display: flex; }
+    #bulk-bar-actions { display: flex; align-items: center; gap: 6px; }
+    #bulk-bar button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 7px;
+      border-radius: 5px;
+    }
+    #bulk-bar button:hover:not(:disabled) { background: rgba(79, 70, 229, 0.08); color: var(--fg); }
+    #bulk-bar button:disabled { opacity: 0.45; cursor: default; }
+    #bulk-bar-delete:hover { color: var(--danger); background: rgba(220, 38, 38, 0.1); }
+    #bulk-bar-mark-read:hover { color: var(--success); background: rgba(22, 163, 74, 0.1); }
 
     /* empty / no-results states */
     #empty-state,
@@ -243,6 +339,12 @@
   <header>
     <h1>Read Later</h1>
     <div class="header-actions">
+      <button id="select-mode-btn" type="button" title="Select multiple">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4" y="4" width="16" height="16" rx="3"></rect>
+          <polyline points="8 12 11 15 16 9"></polyline>
+        </svg>
+      </button>
       <button id="options-btn" type="button" title="Options">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <line x1="4" y1="6" x2="20" y2="6"></line>
@@ -284,9 +386,21 @@
     </button>
   </div>
 
+  <div id="tag-filter" hidden></div>
+
   <ul id="list"></ul>
   <div id="empty-state" hidden>No saved pages yet.<br />Click "Save Current Page" to add one.</div>
   <div id="no-results" hidden>No matches found.</div>
+
+  <div id="bulk-bar">
+    <span id="bulk-bar-count"></span>
+    <div id="bulk-bar-actions">
+      <button id="bulk-bar-select-all" type="button">Select all</button>
+      <button id="bulk-bar-mark-read" type="button">Mark read</button>
+      <button id="bulk-bar-delete" type="button">Delete</button>
+    </div>
+  </div>
+
   <div id="usage-info"></div>
 
   <script type="module" src="popup.js"></script>
