@@ -188,6 +188,10 @@ Runs automatically on every push and pull request via [GitHub Actions](.github/w
 | `contextMenus` | The right-click "Add link/page" and "Open Reading List Manager" menu items |
 | `notifications` | A one-time nudge on install to pin the extension to the toolbar (Chrome doesn't allow extensions to pin themselves) |
 
+## Privacy
+
+Read Later has no server and collects nothing — everything you save stays in your own browser (or syncs between your own devices via your Google account, through Chrome's own built-in sync, not anything this extension operates). See [privacy.html](privacy.html) for the full policy.
+
 ## License
 
 MIT © 2026 Karan Changlani — see [LICENSE](LICENSE). Free to use, modify, and distribute, as long as the original copyright notice stays attached.

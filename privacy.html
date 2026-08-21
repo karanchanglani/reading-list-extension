@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Read Later — Privacy Policy</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #4f46e5;
+      --bg: #ffffff;
+      --bg-subtle: #f9fafb;
+      --fg: #1f2430;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--accent);
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+    header p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+
+    h2 { font-size: 14.5px; margin: 28px 0 8px; }
+    p { margin: 8px 0; font-size: 13.5px; }
+    ul { margin: 8px 0; padding-left: 20px; font-size: 13.5px; }
+    li { margin: 4px 0; }
+    code {
+      background: var(--bg-subtle);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .summary {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+      margin: 0 0 8px;
+    }
+    .summary strong { display: block; margin-bottom: 4px; }
+    footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="13" height="18" rx="2"></rect>
+        <line x1="7" y1="3" x2="7" y2="21"></line>
+        <line x1="20" y1="6" x2="20" y2="14"></line>
+        <line x1="16" y1="10" x2="24" y2="10"></line>
+      </svg>
+    </div>
+    <div>
+      <h1>Read Later — Privacy Policy</h1>
+      <p>Last updated August 2026</p>
+    </div>
+  </header>
+
+  <div class="summary">
+    <strong>In short:</strong>
+    Read Later doesn't have a server. Everything you save stays in your own browser (or syncs between your own devices through your Google account, via Chrome's built-in sync — not anything this extension operates). Nothing is sold, shared, or sent anywhere for analytics or advertising, because nothing is sent anywhere at all.
+  </div>
+
+  <h2>What data is stored</h2>
+  <p>When you save a page, Read Later stores:</p>
+  <ul>
+    <li>The page's URL, title, and favicon image URL</li>
+    <li>When you saved it, and whether you've marked it read</li>
+    <li>The order you've arranged your list in</li>
+    <li>If you saved it using the on-page floating button specifically: a cached, readable copy of the article's text and images, extracted at save time (used for the offline-friendly reader view)</li>
+  </ul>
+  <p>Read Later also stores a couple of your preferences (for example, whether the floating button is turned on) so they persist between browsing sessions.</p>
+
+  <h2>Where it's stored</h2>
+  <p>
+    All of this is stored using Chrome's own built-in storage APIs, directly in your browser:
+    <code>chrome.storage.sync</code> for your reading list and settings, and <code>chrome.storage.local</code> for cached article content (which is larger, and deliberately kept local rather than synced).
+  </p>
+  <p>
+    If you're signed into Chrome and have sync turned on, <code>chrome.storage.sync</code> data follows you to your other devices the same way your bookmarks or browsing history would — that syncing is handled entirely by Google/Chrome's own infrastructure, not by any server this extension runs, because this extension doesn't run a server.
+  </p>
+
+  <h2>What Read Later does <em>not</em> do</h2>
+  <ul>
+    <li>No analytics, telemetry, or usage tracking of any kind</li>
+    <li>No advertising, and no data is ever sold or shared with third parties — there's no third party in this picture to share it with</li>
+    <li>No account or sign-up required to use the extension</li>
+    <li>No remote servers operated by this extension — the source code has no analytics SDK, no tracking pixel, and no network request to anywhere except what's described below</li>
+  </ul>
+
+  <h2>The only network requests it makes</h2>
+  <p>
+    When you view your saved list, your browser loads each article's favicon image directly from the site that hosts it — an ordinary image request, exactly like the one your browser already makes when you visit that site normally. That's the only outbound network activity this extension causes on its own.
+  </p>
+
+  <h2>Deleting your data</h2>
+  <p>
+    Since everything lives in your own browser, you're always in full control: delete individual saved articles from the Reading List Manager, or remove the extension entirely via <code>chrome://extensions</code> to delete everything at once. There's no account to close and no request to send anyone, because there's nothing stored anywhere but your own browser.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    Read Later is open source. If this policy changes, the update will be in the same commit history as everything else — see the source and full history at
+    <a href="https://github.com/karanchanglani/reading-list-extension" target="_blank" rel="noopener">github.com/karanchanglani/reading-list-extension</a>. Questions or concerns can be raised as a GitHub issue there.
+  </p>
+
+  <footer>Read Later — privacy policy</footer>
+</body>
+</html>
