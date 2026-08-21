@@ -167,6 +167,18 @@ vendor/            — Mozilla's Readability, vendored as a plain script (no bui
 icons/             — toolbar and extension icons
 ```
 
+## Testing
+
+End-to-end tests drive the actual unpacked extension in a real Chromium instance via [Playwright Test](https://playwright.dev/) — not mocks, the real manifest/background/content scripts loaded exactly as Chrome would load them.
+
+```
+npm install
+npx playwright install --with-deps chromium   # first time only
+npm test
+```
+
+Runs automatically on every push and pull request via [GitHub Actions](.github/workflows/test.yml). See `tests/fixtures.js` for how the extension gets loaded (a persistent browser profile with `--load-extension`, in Chromium's newer headless mode — Playwright's default headless mode doesn't support loading extensions at all).
+
 ## Permissions used
 
 | Permission | Why |

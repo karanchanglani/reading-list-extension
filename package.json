@@ -1,0 +1,12 @@
+{
+  "name": "read-later-extension",
+  "private": true,
+  "description": "Chrome extension (Manifest V3) for saving articles to a synced reading list.",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}
