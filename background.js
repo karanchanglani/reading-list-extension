@@ -188,6 +188,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         "Click the puzzle-piece icon in Chrome's toolbar and pin Read Later so it stays right next to the address bar.",
       priority: 1,
     });
+
+    chrome.tabs.create({ url: "welcome.html" });
   }
 });
 

@@ -25,6 +25,8 @@ This extension isn't published on the Chrome Web Store — load it as an unpacke
 3. Click **Load unpacked** and select this project folder.
 4. The book-plus icon appears in Chrome's toolbar (it may be tucked inside the puzzle-piece "Extensions" menu at first — click the puzzle piece and pin it for one-click access).
 
+A `welcome.html` walkthrough opens automatically the first time you install the extension, covering the toolbar icon, keyboard shortcuts, the floating button's gestures, and Options — revisit it any time via `chrome-extension://<id>/welcome.html`, or just read the sections below.
+
 ## Usage guide
 
 ### 1. The toolbar icon — view your list
@@ -168,6 +170,7 @@ popup.html/js      — the reading list popup / standalone manager window
 options.html/js    — the options page (entry-point toggles, shortcut link, export/import)
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
 reader.html/js     — the reader view, rendering a cached article snapshot
+welcome.html       — first-run onboarding walkthrough, opened once on install
 vendor/            — Mozilla's Readability, vendored as a plain script (no build step in this project)
 icons/             — toolbar and extension icons
 ```

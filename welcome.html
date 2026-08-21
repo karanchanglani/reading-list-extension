@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome to Read Later</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #4f46e5;
+      --bg: #ffffff;
+      --bg-subtle: #f9fafb;
+      --fg: #1f2430;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --code-bg: #eef2ff;
+      --unread: #f97316;
+      --read: #00b368;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b1c21;
+        --bg-subtle: #232429;
+        --fg: #e5e7eb;
+        --muted: #9199a8;
+        --border: #34363e;
+        --code-bg: rgba(129, 140, 248, 0.16);
+        --read: #22c55e;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--accent);
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    header h1 { font-size: 19px; margin: 0; font-weight: 600; }
+    header p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+    section { margin: 28px 0; }
+    h2 {
+      font-size: 14.5px;
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2 .step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--code-bg);
+      color: var(--accent);
+      font-size: 11.5px;
+      font-weight: 700;
+      flex: none;
+    }
+    p { margin: 8px 0; font-size: 13.5px; }
+    section > p:first-of-type { margin-top: 0; }
+
+    code {
+      background: var(--code-bg);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot.unread { background: var(--unread); }
+    .dot.read { background: var(--read); }
+
+    .cta {
+      margin-top: 32px;
+      text-align: center;
+    }
+    .cta a {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 11px 22px;
+      border-radius: 8px;
+    }
+    .cta p {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .cta p a {
+      display: inline;
+      background: none;
+      color: var(--accent);
+      padding: 0;
+      font-weight: 400;
+    }
+
+    footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="13" height="18" rx="2"></rect>
+        <line x1="7" y1="3" x2="7" y2="21"></line>
+        <line x1="20" y1="6" x2="20" y2="14"></line>
+        <line x1="16" y1="10" x2="24" y2="10"></line>
+      </svg>
+    </div>
+    <div>
+      <h1>Welcome to Read Later</h1>
+      <p>Four ways to save a page, all pointing at the same list.</p>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="step">1</span> The toolbar icon</h2>
+    <p>
+      Click the book-plus icon next to your address bar to save the current page and see your
+      full reading list — search, mark items read, and delete, all from that one popup. If you
+      don't see it, click the puzzle-piece "Extensions" icon and pin Read Later so it stays visible.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="step">2</span> Keyboard shortcuts</h2>
+    <p>Two shortcuts, the same combo on every platform:</p>
+    <table>
+      <tr><th>Shortcut</th><th>Does what</th></tr>
+      <tr><td><code>Ctrl+Shift+S</code> / <code>MacCtrl+Shift+S</code></td><td>Instantly saves the current page, with an on-page toast confirming it.</td></tr>
+      <tr><td><code>Ctrl+Shift+L</code> / <code>MacCtrl+Shift+L</code></td><td>Opens your reading list — same as clicking the toolbar icon.</td></tr>
+    </table>
+    <p>Either can be reassigned any time from Options → <strong>Manage shortcuts</strong>.</p>
+  </section>
+
+  <section>
+    <h2><span class="step">3</span> The floating save button</h2>
+    <p>
+      A small circular button appears in the bottom-right corner of every page, and always
+      reflects that page's real saved/read state:
+    </p>
+    <table>
+      <tr><th>Gesture</th><th>Result</th></tr>
+      <tr><td>Click</td><td><span class="dot unread"></span>Saves the page (indigo → orange).</td></tr>
+      <tr><td>Double-click</td><td><span class="dot unread"></span> ↔ <span class="dot read"></span> Toggles read/unread, either direction.</td></tr>
+      <tr><td>Hold for 2.5s</td><td>Removes the page from your list — a ring sweeps around the button as you hold; release early and nothing happens.</td></tr>
+    </table>
+    <p>Don't want it? Turn it off any time in Options.</p>
+  </section>
+
+  <section>
+    <h2><span class="step">4</span> The Options page</h2>
+    <p>
+      Open it from the gear icon in the popup, or by right-clicking the toolbar icon → Options.
+      From there you can turn the floating button or right-click menu off, manage the keyboard
+      shortcut, and export or import your reading list as a JSON or Pocket CSV file.
+    </p>
+  </section>
+
+  <div class="cta">
+    <a href="popup.html" target="_blank" rel="noopener">Open your reading list</a>
+    <p>Or read the full <a href="https://github.com/karanchanglani/reading-list-extension#readme" target="_blank" rel="noopener">documentation</a> any time.</p>
+  </div>
+
+  <footer>Read Later — you can revisit this page any time from the README.</footer>
+</body>
+</html>
