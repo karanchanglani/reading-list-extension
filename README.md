@@ -8,6 +8,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
+- A cached, distraction-free reader view for articles saved via the floating button — extracted with Mozilla's Readability at save time and stored locally, so it keeps working even if the original page goes offline or gets paywalled later
 - An options page to turn the floating button or the right-click menu off individually (applied live to already-open tabs), manage keyboard shortcuts, and export/import your reading list as JSON or a Pocket CSV export
 - Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
 - Duplicate protection — the same URL is never saved twice
@@ -89,7 +90,16 @@ Every regular web page gets a small circular button in the bottom-right corner o
 
 > **Not seeing it?** A handful of sites use floating chat widgets or cookie banners in the same bottom-right corner, which can occasionally overlap the button. It's still there — try scrolling, or use the toolbar icon / keyboard shortcut instead. It can also be turned off entirely in Options (see below).
 
-### 6. The Reading List Manager
+### 6. Reader view — a cached, distraction-free copy
+
+When you save a page with the **floating button**, Read Later also extracts a clean, readable copy of the article — the same extraction library behind Firefox's Reader View — and caches it locally. It strips ads, navigation, and layout clutter down to the title, byline, and article text, and keeps working even if the original page later goes offline, gets paywalled, or is edited.
+
+- Articles with a cached copy show a small document icon in the Reading List Manager — click it to open the reader view in a new tab.
+- The reader view shows title, byline, site name, an estimated reading time, and the save date, followed by the article text and a "View live page" link back to the original.
+
+> **Only the floating button captures this, for now.** Saving via the keyboard shortcut, the right-click menu, or the popup's "Save Current Page" button still saves the link/title/favicon as before, just without a cached copy — those entry points don't run inside the page at save time the way the floating button does, and extending capture to them would mean requesting broader page-content permissions, a bigger decision than adding the feature itself.
+
+### 7. The Reading List Manager
 
 Open it by clicking the toolbar icon (or right-clicking it → **Open Reading List Manager** for a standalone window instead of a popup). This is where you browse, search, and manage everything you've saved.
 
@@ -97,12 +107,13 @@ Open it by clicking the toolbar icon (or right-clicking it → **Open Reading Li
 - **Favicon + title** — click anywhere on an item to open it in a new tab.
 - **Domain name** — shown under the title so you can see the source at a glance.
 - **Grip icon** — drag an item to manually reorder your list. Only works while the search box is empty (dragging a filtered subset wouldn't map cleanly onto the full list's order).
+- **Reader icon** — appears only on articles with a cached copy (see above); opens the reader view.
 - **Checkmark button** — toggles an item between read and unread. Read items get a strikethrough title and a dimmed favicon.
-- **Trash button** — removes the item from your list.
+- **Trash button** — removes the item from your list (and its cached reader copy, if it has one).
 
 If your list is empty, you'll see a prompt to save your first page. If a search doesn't match anything, you'll see a "no matches" message instead of an empty list.
 
-### 7. Options — entry points, shortcuts & data
+### 8. Options — entry points, shortcuts & data
 
 Open Options by clicking the gear icon in the popup (next to "Save Current Page"), or by right-clicking the toolbar icon → **Options**.
 
@@ -119,13 +130,13 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 - **Export as JSON** — downloads the full reading list as a single JSON file, for backup or moving to another browser/computer.
 - **Import** — accepts that same JSON format, or a Pocket CSV export (`title,url,time_added,tags,status`). Duplicate URLs are skipped automatically, so re-importing the same file is safe; you'll see a summary like "1 added, 1 skipped."
 
-### 8. Duplicate protection & syncing
+### 9. Duplicate protection & syncing
 
 - Saving the same URL twice won't create a second entry — the toolbar badge, the on-page toast, and the floating button all show an amber "already added" indicator instead of a green one.
 - Your reading list is stored with Chrome's built-in sync storage, so it follows you to any other computer signed into the same Google account with Chrome sync turned on.
 - Each article is stored separately under the hood (rather than one big combined record), so one long title or an unusually large favicon on a single article won't affect any of your other saved articles.
 
-### 9. Quick reference
+### 10. Quick reference
 
 | I want to... | Do this |
 |---|---|
@@ -135,6 +146,7 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 | Mark something as read | Double-click the floating button on the page, or click the checkmark in the manager |
 | Remove a saved article | Hold the floating button for 2.5 seconds, or click the trash icon in the manager |
 | Reorder my saved articles | Drag an item by its grip icon in the manager (search box must be empty) |
+| Read an article distraction-free, or offline | Click the reader icon next to it in the manager (only appears if you saved it via the floating button) |
 | Turn off the floating button or right-click menu | Open Options — gear icon in the popup, or right-click the toolbar icon → *Options* |
 | View or rebind a keyboard shortcut | Open Options → *Manage shortcuts*, or go straight to `chrome://extensions/shortcuts` |
 | Back up or move my list to another browser | Open Options → *Export as JSON* |
@@ -146,9 +158,12 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 manifest.json     — Manifest V3 config: permissions, action, commands, content_scripts, options_ui
 background.js     — service worker: badge, context menus, keyboard command, message handling
 storage.js         — chrome.storage.sync data layer (shared by background.js, popup.js, options.js)
+content-cache.js   — chrome.storage.local layer for cached article snapshots (reader view)
 popup.html/js      — the reading list popup / standalone manager window
 options.html/js    — the options page (entry-point toggles, shortcut link, export/import)
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
+reader.html/js     — the reader view, rendering a cached article snapshot
+vendor/            — Mozilla's Readability, vendored as a plain script (no build step in this project)
 icons/             — toolbar and extension icons
 ```
 
