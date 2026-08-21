@@ -172,6 +172,7 @@ content.js/css     — the on-page floating save button and toast, injected on e
 reader.html/js     — the reader view, rendering a cached article snapshot
 welcome.html       — first-run onboarding walkthrough, opened once on install
 _locales/en/       — UI strings used by background.js, content.js, options.js, and popup.js, via chrome.i18n
+store-assets/      — Chrome Web Store listing screenshots, and the script that generates them
 vendor/            — Mozilla's Readability, vendored as a plain script (no build step in this project)
 icons/             — toolbar and extension icons
 ```
