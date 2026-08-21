@@ -105,9 +105,10 @@ When you save a page with the **floating button**, Read Later also extracts a cl
 Open it by clicking the toolbar icon (or right-clicking it → **Open Reading List Manager** for a standalone window instead of a popup). This is where you browse, search, and manage everything you've saved.
 
 - **Search bar** — filter your saved articles by title as you type.
+- **Sort dropdown** — Manual order, Newest first, Oldest first, Unread first, or A–Z. Your choice is remembered across sessions. Dragging to reorder only works in Manual order, since the other modes have their own defined order.
 - **Favicon + title** — click anywhere on an item to open it in a new tab.
 - **Domain name** — shown under the title so you can see the source at a glance.
-- **Grip icon** — drag an item to manually reorder your list. Only works while the search box is empty (dragging a filtered subset wouldn't map cleanly onto the full list's order).
+- **Grip icon** — drag an item to manually reorder your list. Only works in Manual sort order with no search/tag filter active (dragging a filtered or re-sorted subset wouldn't map cleanly onto the full list's order).
 - **Reader icon** — appears only on articles with a cached copy (see above); opens the reader view.
 - **Checkmark button** — toggles an item between read and unread. Read items get a strikethrough title and a dimmed favicon.
 - **Trash button** — removes the item from your list (and its cached reader copy, if it has one).

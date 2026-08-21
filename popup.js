@@ -7,6 +7,8 @@ import {
   reorderReadingList,
   findByUrl,
   getStorageUsage,
+  getSettings,
+  saveSettings,
 } from "./storage.js";
 import { removeArticleSnapshot } from "./content-cache.js";
 
@@ -54,6 +56,7 @@ const saveBtnLabel = document.getElementById("save-btn-label");
 const statusEl = document.getElementById("status");
 const searchInput = document.getElementById("search-input");
 const searchClearBtn = document.getElementById("search-clear");
+const sortSelect = document.getElementById("sort-select");
 const tagFilterEl = document.getElementById("tag-filter");
 const listEl = document.getElementById("list");
 const emptyStateEl = document.getElementById("empty-state");
@@ -77,6 +80,8 @@ let editingTagsId = null;
 let selectMode = false;
 /** Ids checked in select mode. */
 const selectedIds = new Set();
+/** Current sort mode; loaded from settings on startup. @type {import("./storage.js").SortMode} */
+let sortMode = "manual";
 
 function getDomain(url) {
   try {
@@ -102,6 +107,28 @@ function getFilteredItems() {
     if (activeTagFilter && !(item.tags || []).includes(activeTagFilter)) return false;
     return true;
   });
+}
+
+/**
+ * Sorts a copy of `items` per the current sort mode. "manual" returns the
+ * items as-is — their order already reflects the saved drag order.
+ * @param {import("./storage.js").ReadingListItem[]} items
+ */
+function applySort(items) {
+  switch (sortMode) {
+    case "newest":
+      return [...items].sort((a, b) => b.addedAt - a.addedAt);
+    case "oldest":
+      return [...items].sort((a, b) => a.addedAt - b.addedAt);
+    case "unread":
+      // Stable sort: unread items keep their relative order, read items keep theirs.
+      return [...items].sort((a, b) => Number(a.readStatus) - Number(b.readStatus));
+    case "az":
+      return [...items].sort((a, b) => (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" }));
+    case "manual":
+    default:
+      return items;
+  }
 }
 
 /** Distinct tags across the full list, sorted for a stable chip order. */
@@ -142,11 +169,11 @@ function renderTagFilter() {
 
 function renderList() {
   const query = searchInput.value.trim();
-  const items = getFilteredItems();
-  // Reordering a filtered subset doesn't map cleanly onto the full list's
-  // order, so dragging is only enabled when the whole, untagged-filtered
-  // list is showing and nothing else is mid-edit.
-  const reorderable = !query && !activeTagFilter && !selectMode && !editingTagsId;
+  const items = applySort(getFilteredItems());
+  // Reordering a filtered or re-sorted view doesn't map cleanly onto the
+  // full list's saved order, so dragging only makes sense when the whole
+  // list is showing in its manual order and nothing else is mid-edit.
+  const reorderable = sortMode === "manual" && !query && !activeTagFilter && !selectMode && !editingTagsId;
   const filtered = Boolean(query || activeTagFilter);
 
   listEl.innerHTML = "";
@@ -512,6 +539,12 @@ bulkBarDeleteBtn.addEventListener("click", async () => {
 
 selectModeBtn.addEventListener("click", () => setSelectMode(!selectMode));
 
+sortSelect.addEventListener("change", async () => {
+  sortMode = sortSelect.value;
+  renderList();
+  await saveSettings({ sortMode });
+});
+
 optionsBtn.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
@@ -550,9 +583,19 @@ listEl.addEventListener("drop", (event) => {
   if (listEl.querySelector("li.dragging")) event.preventDefault();
 });
 
+async function loadInitialSort() {
+  const settings = await getSettings();
+  sortMode = settings.sortMode;
+  sortSelect.value = sortMode;
+  renderList();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  // Fetch the list and the active tab in parallel so the popup is ready
-  // (and the Save button already reflects "saved"/"unsaved") the instant it opens.
+  // Fetch the list, the active tab, and the saved sort mode in parallel so
+  // the popup is ready (and the Save button already reflects
+  // "saved"/"unsaved") the instant it opens. Each path re-renders the list
+  // once it resolves, so whichever finishes last ends up reflecting both.
   refreshList();
   prefetchActiveTab();
+  loadInitialSort();
 });

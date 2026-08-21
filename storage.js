@@ -16,14 +16,18 @@ export const SETTINGS_KEY = "settings";
 const ITEM_KEY_PREFIX = "item_";
 const LEGACY_STORAGE_KEY = "readingList"; // old single-blob format
 
+/** @typedef {"manual" | "newest" | "oldest" | "unread" | "az"} SortMode */
+
 /**
  * @typedef {Object} Settings
  * @property {boolean} fabEnabled - show the on-page floating save button
  * @property {boolean} contextMenuEnabled - show "Add link/page to Reading List" on right-click
+ * @property {SortMode} sortMode - how the popup's Reading List Manager orders items
  */
 export const DEFAULT_SETTINGS = {
   fabEnabled: true,
   contextMenuEnabled: true,
+  sortMode: "manual",
 };
 
 // chrome.storage.sync hard limits (see chrome.storage.sync.QUOTA_BYTES*).

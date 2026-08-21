@@ -136,6 +136,25 @@
     #search-clear:hover { color: var(--fg); }
     #search-clear[hidden] { display: none; }
 
+    /* sort dropdown */
+    #sort-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin: 0 14px 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    #sort-select {
+      font-size: 11px;
+      color: var(--fg);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 6px;
+    }
+
     /* tag filter row */
     #tag-filter {
       display: flex;
@@ -384,6 +403,17 @@
         <line x1="18" y1="6" x2="6" y2="18"></line>
       </svg>
     </button>
+  </div>
+
+  <div id="sort-row">
+    <label for="sort-select">Sort</label>
+    <select id="sort-select">
+      <option value="manual">Manual order</option>
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="unread">Unread first</option>
+      <option value="az">A–Z</option>
+    </select>
   </div>
 
   <div id="tag-filter" hidden></div>
