@@ -6,6 +6,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 
 - One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
 - Tag any saved item with your own labels, filter the list by tag, and use select mode to bulk mark-read or delete multiple items at once
+- Automatic dark mode across the popup, options page, and the on-page floating button/toast, following your OS/browser color scheme
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
