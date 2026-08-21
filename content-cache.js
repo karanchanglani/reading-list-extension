@@ -45,6 +45,24 @@ export async function getArticleSnapshot(id) {
   return result[snapshotKey(id)] || null;
 }
 
+/**
+ * Batched read of multiple snapshots in one chrome.storage.local.get call —
+ * used by the Manager's content search, which needs many snapshots' text at
+ * once rather than one item at a time.
+ * @param {string[]} ids
+ * @returns {Promise<Map<string, ArticleSnapshot>>} only ids with a cached snapshot are present
+ */
+export async function getArticleSnapshots(ids) {
+  if (ids.length === 0) return new Map();
+  const stored = await chrome.storage.local.get(ids.map(snapshotKey));
+  const result = new Map();
+  for (const id of ids) {
+    const snap = stored[snapshotKey(id)];
+    if (snap) result.set(id, snap);
+  }
+  return result;
+}
+
 /** @param {string} id */
 export async function removeArticleSnapshot(id) {
   await chrome.storage.local.remove(snapshotKey(id));

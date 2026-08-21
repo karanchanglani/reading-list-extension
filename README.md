@@ -107,7 +107,7 @@ When you save a page with the **floating button**, Read Later also extracts a cl
 
 Open it by clicking the toolbar icon (or right-clicking it → **Open Reading List Manager** for a standalone window instead of a popup). This is where you browse, search, and manage everything you've saved.
 
-- **Search bar** — filter your saved articles by title as you type.
+- **Search bar** — filter your saved articles by title as you type. For anything saved via the floating button, it also searches the cached article text itself, showing a matching excerpt when the match isn't in the title.
 - **Sort dropdown** — Manual order, Newest first, Oldest first, Unread first, or A–Z. Your choice is remembered across sessions. Dragging to reorder only works in Manual order, since the other modes have their own defined order.
 - **Favicon + title** — click anywhere on an item to open it in a new tab.
 - **Domain name** — shown under the title so you can see the source at a glance.

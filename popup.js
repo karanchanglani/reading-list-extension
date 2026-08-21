@@ -10,7 +10,7 @@ import {
   getSettings,
   saveSettings,
 } from "./storage.js";
-import { removeArticleSnapshot } from "./content-cache.js";
+import { removeArticleSnapshot, getArticleSnapshots } from "./content-cache.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -82,6 +82,62 @@ let selectMode = false;
 const selectedIds = new Set();
 /** Current sort mode; loaded from settings on startup. @type {import("./storage.js").SortMode} */
 let sortMode = "manual";
+/** id -> { rawText, lowerText } for cached article snapshots fetched so far this popup session. */
+const snapshotTextCache = new Map();
+
+/**
+ * Batch-fetches cached snapshot text for any hasSnapshot item not already in
+ * snapshotTextCache. A no-op (no storage read) once everything currently
+ * known is cached, so only the first search keystroke each session pays for
+ * a chrome.storage.local read — every keystroke after that is synchronous.
+ */
+async function ensureSnapshotTextLoaded() {
+  const missingIds = allItems
+    .filter((item) => item.hasSnapshot && !snapshotTextCache.has(item.id))
+    .map((item) => item.id);
+  if (missingIds.length === 0) return;
+
+  const snapshots = await getArticleSnapshots(missingIds);
+  for (const [id, snapshot] of snapshots) {
+    const rawText = snapshot.textContent || "";
+    snapshotTextCache.set(id, { rawText, lowerText: rawText.toLowerCase() });
+  }
+}
+
+/** @returns {boolean} true if `item`'s title matches `query` (already lowercased). */
+function titleMatches(item, query) {
+  return (item.title || "").toLowerCase().includes(query);
+}
+
+/** @returns {boolean} true if `item` matches `query` (already lowercased) by title or cached article text. */
+function matchesQuery(item, query) {
+  if (titleMatches(item, query)) return true;
+  return Boolean(snapshotTextCache.get(item.id)?.lowerText.includes(query));
+}
+
+/**
+ * Builds DOM nodes for a one-line excerpt around the first match of `query`
+ * inside `cached.rawText`, with the matched substring wrapped in <mark>.
+ * Built from text nodes rather than innerHTML so article-derived text can
+ * never be interpreted as markup.
+ * @param {{ rawText: string, lowerText: string }} cached
+ * @param {string} query already lowercased
+ * @returns {Node[] | null}
+ */
+function buildSnippetNodes(cached, query) {
+  const idx = cached.lowerText.indexOf(query);
+  if (idx === -1) return null;
+
+  const start = Math.max(0, idx - 40);
+  const end = Math.min(cached.rawText.length, idx + query.length + 60);
+  const before = (start > 0 ? "…" : "") + cached.rawText.slice(start, idx);
+  const match = cached.rawText.slice(idx, idx + query.length);
+  const after = cached.rawText.slice(idx + query.length, end) + (end < cached.rawText.length ? "…" : "");
+
+  const mark = document.createElement("mark");
+  mark.textContent = match;
+  return [document.createTextNode(before), mark, document.createTextNode(after)];
+}
 
 function getDomain(url) {
   try {
@@ -103,7 +159,7 @@ function showStatus(message, ms = 1800) {
 function getFilteredItems() {
   const query = searchInput.value.trim().toLowerCase();
   return allItems.filter((item) => {
-    if (query && !(item.title || "").toLowerCase().includes(query)) return false;
+    if (query && !matchesQuery(item, query)) return false;
     if (activeTagFilter && !(item.tags || []).includes(activeTagFilter)) return false;
     return true;
   });
@@ -169,6 +225,7 @@ function renderTagFilter() {
 
 function renderList() {
   const query = searchInput.value.trim();
+  const lowerQuery = query.toLowerCase();
   const items = applySort(getFilteredItems());
   // Reordering a filtered or re-sorted view doesn't map cleanly onto the
   // full list's saved order, so dragging only makes sense when the whole
@@ -237,6 +294,20 @@ function renderList() {
     domain.className = "domain";
     domain.textContent = getDomain(item.url);
     info.append(title, domain);
+
+    // Only show a match excerpt when the search matched cached article text
+    // rather than the title — if the title already matched, it's already
+    // visible and an excerpt would be redundant.
+    if (query && !titleMatches(item, lowerQuery)) {
+      const cached = snapshotTextCache.get(item.id);
+      const snippetNodes = cached && buildSnippetNodes(cached, lowerQuery);
+      if (snippetNodes) {
+        const snippet = document.createElement("div");
+        snippet.className = "snippet";
+        snippet.append(...snippetNodes);
+        info.appendChild(snippet);
+      }
+    }
 
     if (editingTagsId === item.id) {
       const tagsInput = document.createElement("input");
@@ -569,9 +640,20 @@ optionsBtn.addEventListener("click", () => {
 
 saveBtn.addEventListener("click", saveCurrentPage);
 
+let searchDebounceTimer = null;
+
 searchInput.addEventListener("input", () => {
   searchClearBtn.hidden = searchInput.value.length === 0;
-  renderList();
+  renderList(); // immediate: title/tag filtering is synchronous and free
+
+  // Cached article text may need a one-time chrome.storage.local read (only
+  // for snapshots not already in snapshotTextCache) — debounced so a fast
+  // typist doesn't trigger a read per keystroke.
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(async () => {
+    await ensureSnapshotTextLoaded();
+    renderList();
+  }, 150);
 });
 
 searchClearBtn.addEventListener("click", () => {
