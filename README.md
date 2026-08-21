@@ -186,9 +186,11 @@ Runs automatically on every push and pull request via [GitHub Actions](.github/w
 | Permission | Why |
 |---|---|
 | `storage` | Save the reading list via `chrome.storage.sync` |
-| `activeTab` / `tabs` | Read the current tab's URL, title, and favicon to save it |
+| `activeTab` | Read the current tab's URL, title, and favicon to save it — only for the tab the user just acted on (toolbar click, shortcut, or right-click menu), never standing access to other tabs |
 | `contextMenus` | The right-click "Add link/page" and "Open Reading List Manager" menu items |
 | `notifications` | A one-time nudge on install to pin the extension to the toolbar (Chrome doesn't allow extensions to pin themselves) |
+
+See [PERMISSIONS.md](PERMISSIONS.md) for the full audit, including why the broader `tabs` permission was removed in favor of `activeTab` alone.
 
 ## Privacy
 

@@ -3,7 +3,7 @@
   "name": "Read Later",
   "version": "1.0.0",
   "description": "Save the current page to your reading list and revisit it anytime.",
-  "permissions": ["storage", "activeTab", "tabs", "contextMenus", "notifications"],
+  "permissions": ["storage", "activeTab", "contextMenus", "notifications"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Read Later — view your reading list",
