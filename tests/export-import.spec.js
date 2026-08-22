@@ -73,4 +73,47 @@ test.describe("Export / import", () => {
     await optionsPage.locator("#import-input").setInputFiles(csvPath);
     await expect(optionsPage.locator("#import-status")).toContainText(/^1 added, 1 skipped/, { timeout: 5000 });
   });
+
+  test("imports links from a browser bookmarks HTML export, skipping duplicates and applying no tags", async ({
+    context,
+    extensionId,
+    fixturesUrl,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(`${fixturesUrl}/index.html`, { waitUntil: "load" });
+    await page.locator("#read-later-fab").click();
+    await expect(page.locator("#read-later-fab")).toHaveClass(/rl-unread/);
+    const existingUrl = page.url();
+
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`, { waitUntil: "load" });
+
+    const newUrl = `http://example.com/bookmark-new-${Date.now()}`;
+    const htmlPath = path.join(os.tmpdir(), `bookmarks-${Date.now()}.html`);
+    fs.writeFileSync(
+      htmlPath,
+      `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+    <DT><H3 ADD_DATE="1700000000">Reading</H3>
+    <DL><p>
+        <DT><A HREF="${existingUrl}" ADD_DATE="1700000000">Existing Article</A>
+        <DT><A HREF="${newUrl}" ADD_DATE="1700000001">Brand New Bookmark</A>
+    </DL><p>
+</DL><p>
+`,
+      "utf8"
+    );
+
+    await optionsPage.locator("#import-input").setInputFiles(htmlPath);
+    await expect(optionsPage.locator("#import-status")).toContainText(/^1 added, 1 skipped/, { timeout: 5000 });
+
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: "load" });
+    const newItem = popupPage.locator("#list li", { hasText: "Brand New Bookmark" });
+    await expect(newItem).toBeVisible();
+    await expect(newItem.locator(".tag-chips")).toHaveCount(0); // flat import — no folder-derived tags
+  });
 });

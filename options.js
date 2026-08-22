@@ -144,6 +144,31 @@ function parsePocketCsv(text) {
   });
 }
 
+/**
+ * Parses a browser bookmarks export (the "Netscape Bookmark File Format"
+ * every major browser produces from its own bookmark manager) into the
+ * shape importReadingListItems expects. Flat: every <a href> becomes an
+ * item, regardless of which folder it sits in — the format's folder
+ * nesting isn't structured identically enough across browsers to reliably
+ * derive a tag from it without risking a mis-association.
+ * @param {string} text
+ * @returns {Array<{ url: string, title?: string, favIconUrl: string, addedAt?: number }> | null}
+ */
+function parseBookmarksHtml(text) {
+  if (!/<!DOCTYPE NETSCAPE-Bookmark-file-1>/i.test(text)) return null; // doesn't look like a bookmarks export
+
+  const doc = new DOMParser().parseFromString(text, "text/html");
+  return [...doc.querySelectorAll("a[href]")].map((link) => {
+    const addDateSeconds = Number(link.getAttribute("add_date"));
+    return {
+      url: link.getAttribute("href"),
+      title: link.textContent.trim() || undefined,
+      favIconUrl: link.getAttribute("icon") || "",
+      addedAt: Number.isFinite(addDateSeconds) && addDateSeconds > 0 ? addDateSeconds * 1000 : undefined,
+    };
+  });
+}
+
 importInput.addEventListener("change", async () => {
   const file = importInput.files?.[0];
   if (!file) return;
@@ -155,9 +180,10 @@ importInput.addEventListener("change", async () => {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) rawItems = parsed;
   } catch {
-    // Not JSON — fall through to the CSV attempt below.
+    // Not JSON — fall through to the bookmarks/CSV attempts below.
   }
 
+  if (!rawItems) rawItems = parseBookmarksHtml(text);
   if (!rawItems) rawItems = parsePocketCsv(text);
 
   if (!rawItems || rawItems.length === 0) {

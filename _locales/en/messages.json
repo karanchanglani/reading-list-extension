@@ -81,8 +81,8 @@
     "description": "Brief status text shown in Options after toggling a setting or exporting."
   },
   "importErrorNoArticles": {
-    "message": "Couldn't find any articles in that file — expected a Read Later JSON export or a Pocket CSV export.",
-    "description": "Options import error when the chosen file can't be parsed as either supported format."
+    "message": "Couldn't find any articles in that file — expected a Read Later JSON export, a Pocket CSV export, or a browser bookmarks HTML export.",
+    "description": "Options import error when the chosen file can't be parsed as any supported format."
   },
   "importSummary": {
     "message": "$ADDED$ added, $SKIPPED$ skipped (already on your list, or missing a valid URL) — $TOTAL$ in the file.",

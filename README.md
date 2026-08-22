@@ -11,7 +11,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
 - A cached, distraction-free reader view for articles saved via the floating button — extracted with Mozilla's Readability at save time and stored locally, so it keeps working even if the original page goes offline or gets paywalled later, with adjustable font/size/width, and highlights with optional notes
-- An options page to turn the floating button or the right-click menu off individually (applied live to already-open tabs), manage keyboard shortcuts, and export/import your reading list as JSON or a Pocket CSV export
+- An options page to turn the floating button or the right-click menu off individually (applied live to already-open tabs), manage keyboard shortcuts, and export/import your reading list as JSON, a Pocket CSV export, or a browser bookmarks HTML export
 - Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
 - Duplicate protection — the same URL is never saved twice
 - Each article is stored under its own `chrome.storage.sync` key (with a small index key for ordering) rather than one combined blob, so the list isn't capped by sync's small per-key size limit
@@ -138,7 +138,7 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 
 **Your data**
 - **Export as JSON** — downloads the full reading list as a single JSON file, for backup or moving to another browser/computer.
-- **Import** — accepts that same JSON format, or a Pocket CSV export (`title,url,time_added,tags,status`). Duplicate URLs are skipped automatically, so re-importing the same file is safe; you'll see a summary like "1 added, 1 skipped."
+- **Import** — accepts that same JSON format, a Pocket CSV export (`title,url,time_added,tags,status`), or a bookmarks HTML export from Chrome, Firefox, Safari, or Edge's own bookmark manager (every link in the file is imported, regardless of which folder it's in — folders aren't turned into tags). Duplicate URLs are skipped automatically, so re-importing the same file is safe; you'll see a summary like "1 added, 1 skipped."
 
 ### 9. Duplicate protection & syncing
 
@@ -160,7 +160,7 @@ Toggle changes apply immediately, even to tabs already open — no reload needed
 | Turn off the floating button or right-click menu | Open Options — gear icon in the popup, or right-click the toolbar icon → *Options* |
 | View or rebind a keyboard shortcut | Open Options → *Manage shortcuts*, or go straight to `chrome://extensions/shortcuts` |
 | Back up or move my list to another browser | Open Options → *Export as JSON* |
-| Restore a backup, or import from Pocket | Open Options → *Import*, choose a Read Later JSON export or a Pocket CSV export |
+| Restore a backup, or import from Pocket/your browser's bookmarks | Open Options → *Import*, choose a Read Later JSON export, a Pocket CSV export, or a bookmarks HTML export |
 
 ## Project structure
 
