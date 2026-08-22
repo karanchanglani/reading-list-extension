@@ -21,6 +21,7 @@ const LEGACY_STORAGE_KEY = "readingList"; // old single-blob format
 /** @typedef {"small" | "medium" | "large" | "xlarge"} ReaderFontSize */
 /** @typedef {"sans" | "serif"} ReaderFontFamily */
 /** @typedef {"narrow" | "default" | "wide"} ReaderWidth */
+/** @typedef {"system" | "light" | "dark"} Theme */
 
 /**
  * @typedef {Object} Settings
@@ -30,6 +31,7 @@ const LEGACY_STORAGE_KEY = "readingList"; // old single-blob format
  * @property {ReaderFontSize} readerFontSize - reader.html article text size
  * @property {ReaderFontFamily} readerFontFamily - reader.html article typeface
  * @property {ReaderWidth} readerWidth - reader.html article column width
+ * @property {Theme} theme - overrides the OS/browser color scheme for every extension page ("system" = follow it)
  */
 export const DEFAULT_SETTINGS = {
   fabEnabled: true,
@@ -38,6 +40,7 @@ export const DEFAULT_SETTINGS = {
   readerFontSize: "medium",
   readerFontFamily: "sans",
   readerWidth: "default",
+  theme: "system",
 };
 
 // chrome.storage.sync hard limits (see chrome.storage.sync.QUOTA_BYTES*).

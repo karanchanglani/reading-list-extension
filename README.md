@@ -6,7 +6,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 
 - One-click save from the toolbar popup, which also shows your full list with search, mark-as-read, delete, and drag-to-reorder
 - Tag any saved item with your own labels, filter the list by tag, and use select mode to bulk mark-read or delete multiple items at once
-- Automatic dark mode across the popup, options page, reader view, and the on-page floating button/toast, following your OS/browser color scheme
+- Dark mode across the popup, options page, reader view, welcome page, and privacy policy, following your OS/browser color scheme by default — or pick Light or Dark explicitly in Options, regardless of what your OS is set to
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
@@ -101,7 +101,7 @@ When you save a page with the **floating button**, Read Later also extracts a cl
 - Articles with a cached copy show a small document icon in the Reading List Manager — click it to open the reader view in a new tab.
 - The reader view shows title, byline, site name, an estimated reading time, and the save date, followed by the article text and a "View live page" link back to the original.
 - **Reading preferences** — the "Aa" button in the reader view opens font size (Small–Extra large), font (Sans-serif/Serif), and column width (Narrow/Default/Wide) controls. Your choice applies to every article and is remembered across sessions.
-- The reader view follows your OS/browser dark mode setting, same as the popup and options page.
+- The reader view follows your OS/browser dark mode setting (or your explicit Light/Dark choice from Options), same as the popup and options page.
 - **Highlights & notes** — select any text in the reader view to highlight it, then click a highlight to attach an optional note or remove it. Saved per article and kept locally alongside its cached copy.
 
 > **Only the floating button captures this, for now.** Saving via the keyboard shortcut, the right-click menu, or the popup's "Save Current Page" button still saves the link/title/favicon as before, just without a cached copy — those entry points don't run inside the page at save time the way the floating button does, and extending capture to them would mean requesting broader page-content permissions, a bigger decision than adding the feature itself.
@@ -126,6 +126,9 @@ If your list is empty, you'll see a prompt to save your first page. If a search 
 ### 8. Options — entry points, shortcuts & data
 
 Open Options by clicking the gear icon in the popup (next to "Save Current Page"), or by right-clicking the toolbar icon → **Options**.
+
+**Appearance**
+- **Theme** — System (default, follows your OS/browser), Light, or Dark. An explicit choice applies across the popup, options page, reader view, welcome page, and privacy policy, regardless of what your OS is set to.
 
 **Entry points**
 - **On-page floating save button** — turn off if you don't want the bubble appearing on every page.
@@ -174,6 +177,7 @@ options.html/js    — the options page (entry-point toggles, shortcut link, exp
 content.js/css     — the on-page floating save button and toast, injected on every http/https page
 reader.html/js     — the reader view, rendering a cached article snapshot
 welcome.html       — first-run onboarding walkthrough, opened once on install
+theme.js           — applies the Light/Dark/System theme setting; included on every extension page
 _locales/en/       — UI strings used by background.js, content.js, options.js, and popup.js, via chrome.i18n
 store-assets/      — Chrome Web Store listing screenshots, and the script that generates them
 vendor/            — Mozilla's Readability, vendored as a plain script (no build step in this project)

@@ -13,6 +13,22 @@
       --muted: #6b7280;
       --border: #e5e7eb;
     }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1b1c21;
+        --bg-subtle: #232429;
+        --fg: #e5e7eb;
+        --muted: #9199a8;
+        --border: #34363e;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1c21;
+      --bg-subtle: #232429;
+      --fg: #e5e7eb;
+      --muted: #9199a8;
+      --border: #34363e;
+    }
     * { box-sizing: border-box; }
     body {
       max-width: 620px;
@@ -140,5 +156,7 @@
   </p>
 
   <footer>Read Later — privacy policy</footer>
+
+  <script type="module" src="theme.js"></script>
 </body>
 </html>

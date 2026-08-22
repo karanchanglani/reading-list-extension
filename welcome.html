@@ -17,7 +17,7 @@
       --read: #00b368;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #1b1c21;
         --bg-subtle: #232429;
         --fg: #e5e7eb;
@@ -26,6 +26,15 @@
         --code-bg: rgba(129, 140, 248, 0.16);
         --read: #22c55e;
       }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1c21;
+      --bg-subtle: #232429;
+      --fg: #e5e7eb;
+      --muted: #9199a8;
+      --border: #34363e;
+      --code-bg: rgba(129, 140, 248, 0.16);
+      --read: #22c55e;
     }
     * { box-sizing: border-box; }
     body {
@@ -220,5 +229,7 @@
   </div>
 
   <footer>Read Later — you can revisit this page any time from the README.</footer>
+
+  <script type="module" src="theme.js"></script>
 </body>
 </html>

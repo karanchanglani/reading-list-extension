@@ -19,7 +19,7 @@
       --warning-fg: #9a3412;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --success: #22c55e;
         --danger: #f87171;
         --bg: #1b1c21;
@@ -30,6 +30,17 @@
         --warning-bg: #3a2a0a;
         --warning-fg: #fcd34d;
       }
+    }
+    :root[data-theme="dark"] {
+      --success: #22c55e;
+      --danger: #f87171;
+      --bg: #1b1c21;
+      --bg-subtle: #232429;
+      --fg: #e5e7eb;
+      --muted: #9199a8;
+      --border: #34363e;
+      --warning-bg: #3a2a0a;
+      --warning-fg: #fcd34d;
     }
     * { box-sizing: border-box; }
     body {
@@ -460,6 +471,7 @@
 
   <div id="usage-info"></div>
 
+  <script type="module" src="theme.js"></script>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

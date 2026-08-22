@@ -21,7 +21,7 @@
       --error-border: #fecaca;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --success: #22c55e;
         --bg: #1b1c21;
         --bg-subtle: #232429;
@@ -34,6 +34,19 @@
         --error-bg: rgba(220, 38, 38, 0.16);
         --error-border: rgba(248, 113, 113, 0.4);
       }
+    }
+    :root[data-theme="dark"] {
+      --success: #22c55e;
+      --bg: #1b1c21;
+      --bg-subtle: #232429;
+      --fg: #e5e7eb;
+      --muted: #9199a8;
+      --border: #34363e;
+      --code-bg: rgba(129, 140, 248, 0.16);
+      --switch-track-off: #494b54;
+      --error-fg: #fca5a5;
+      --error-bg: rgba(220, 38, 38, 0.16);
+      --error-border: rgba(248, 113, 113, 0.4);
     }
     * { box-sizing: border-box; }
     body {
@@ -145,6 +158,15 @@
       white-space: nowrap;
     }
     .action-btn:hover { background: var(--accent); color: #fff; }
+    #theme-select {
+      font-size: 12.5px;
+      font-family: inherit;
+      color: var(--fg);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+    }
 
     #status {
       font-size: 12px;
@@ -195,6 +217,20 @@
       <p>Choose which quick-save entry points show up while you browse, and manage the keyboard shortcut.</p>
     </div>
   </header>
+
+  <h2>Appearance</h2>
+
+  <div class="setting-row">
+    <div class="text">
+      <div class="title">Theme</div>
+      <div class="desc">Follow your OS/browser setting, or lock this extension to light or dark regardless of it.</div>
+    </div>
+    <select id="theme-select">
+      <option value="system">System</option>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+    </select>
+  </div>
 
   <h2>Entry points</h2>
 
@@ -263,6 +299,7 @@
     <p><a href="privacy.html" target="_blank">Privacy policy</a></p>
   </footer>
 
+  <script type="module" src="theme.js"></script>
   <script type="module" src="options.js"></script>
 </body>
 </html>

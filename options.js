@@ -1,5 +1,6 @@
 import { getSettings, saveSettings, getReadingList, importReadingListItems } from "./storage.js";
 
+const themeSelect = document.getElementById("theme-select");
 const fabToggle = document.getElementById("fab-toggle");
 const contextMenuToggle = document.getElementById("context-menu-toggle");
 const shortcutsBtn = document.getElementById("shortcuts-btn");
@@ -21,9 +22,15 @@ function showSaved() {
 
 async function load() {
   const settings = await getSettings();
+  themeSelect.value = settings.theme;
   fabToggle.checked = settings.fabEnabled;
   contextMenuToggle.checked = settings.contextMenuEnabled;
 }
+
+themeSelect.addEventListener("change", async () => {
+  await saveSettings({ theme: themeSelect.value });
+  showSaved();
+});
 
 fabToggle.addEventListener("change", async () => {
   await saveSettings({ fabEnabled: fabToggle.checked });

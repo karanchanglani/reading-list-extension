@@ -19,16 +19,26 @@
       --reader-max-width: 680px;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #1b1c21;
         --bg-subtle: #232429;
         --fg: #e5e7eb;
         --muted: #9199a8;
         --border: #34363e;
       }
-      #article-content img {
+      :root:not([data-theme="light"]) #article-content img {
         filter: brightness(0.85); /* keep bright photos from glaring against a dark page */
       }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1c21;
+      --bg-subtle: #232429;
+      --fg: #e5e7eb;
+      --muted: #9199a8;
+      --border: #34363e;
+    }
+    :root[data-theme="dark"] #article-content img {
+      filter: brightness(0.85);
     }
     * { box-sizing: border-box; }
     body {
@@ -343,6 +353,7 @@
 
   <button id="highlight-toolbar" type="button">Highlight</button>
 
+  <script type="module" src="theme.js"></script>
   <script type="module" src="reader.js"></script>
 </body>
 </html>
