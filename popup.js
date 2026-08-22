@@ -10,7 +10,7 @@ import {
   getSettings,
   saveSettings,
 } from "./storage.js";
-import { removeArticleSnapshot, getArticleSnapshots } from "./content-cache.js";
+import { removeArticleSnapshot, getArticleSnapshots, removeHighlights } from "./content-cache.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -526,7 +526,7 @@ async function saveCurrentPage() {
 
 async function removeItem(id) {
   allItems = await removeFromReadingList(id);
-  await removeArticleSnapshot(id);
+  await Promise.all([removeArticleSnapshot(id), removeHighlights(id)]);
   selectedIds.delete(id);
   renderTagFilter();
   renderList();
@@ -613,7 +613,7 @@ bulkBarDeleteBtn.addEventListener("click", async () => {
   if (selectedIds.size === 0) return;
   const ids = [...selectedIds];
   allItems = await removeManyFromReadingList(ids);
-  await Promise.all(ids.map((id) => removeArticleSnapshot(id)));
+  await Promise.all(ids.map((id) => Promise.all([removeArticleSnapshot(id), removeHighlights(id)])));
   showStatus(
     ids.length === 1
       ? chrome.i18n.getMessage("bulkDeletedSingular")

@@ -10,7 +10,7 @@ A Chrome extension (Manifest V3) for saving articles to a reading list without l
 - Keyboard shortcuts (same combo on every platform): `Ctrl+Shift+S` for instant saving with an on-page toast confirmation, `Ctrl+Shift+L` to open the reading list
 - Right-click context menu — "Add link/page to Reading List" on any page or link (also opens a standalone Reading List Manager window from the toolbar icon's right-click menu)
 - A floating save button injected on every `http`/`https` page, reflecting the article's real saved/read state: click to save (orange), double-click to toggle read/unread (spring green `#00FF7F`), or hold for 2.5s to remove it
-- A cached, distraction-free reader view for articles saved via the floating button — extracted with Mozilla's Readability at save time and stored locally, so it keeps working even if the original page goes offline or gets paywalled later
+- A cached, distraction-free reader view for articles saved via the floating button — extracted with Mozilla's Readability at save time and stored locally, so it keeps working even if the original page goes offline or gets paywalled later, with adjustable font/size/width, and highlights with optional notes
 - An options page to turn the floating button or the right-click menu off individually (applied live to already-open tabs), manage keyboard shortcuts, and export/import your reading list as JSON or a Pocket CSV export
 - Toolbar badge feedback for every save action (SAVED / already-saved / error / current unread count)
 - Duplicate protection — the same URL is never saved twice
@@ -102,6 +102,7 @@ When you save a page with the **floating button**, Read Later also extracts a cl
 - The reader view shows title, byline, site name, an estimated reading time, and the save date, followed by the article text and a "View live page" link back to the original.
 - **Reading preferences** — the "Aa" button in the reader view opens font size (Small–Extra large), font (Sans-serif/Serif), and column width (Narrow/Default/Wide) controls. Your choice applies to every article and is remembered across sessions.
 - The reader view follows your OS/browser dark mode setting, same as the popup and options page.
+- **Highlights & notes** — select any text in the reader view to highlight it, then click a highlight to attach an optional note or remove it. Saved per article and kept locally alongside its cached copy.
 
 > **Only the floating button captures this, for now.** Saving via the keyboard shortcut, the right-click menu, or the popup's "Save Current Page" button still saves the link/title/favicon as before, just without a cached copy — those entry points don't run inside the page at save time the way the floating button does, and extending capture to them would mean requesting broader page-content permissions, a bigger decision than adding the feature itself.
 

@@ -67,3 +67,46 @@ export async function getArticleSnapshots(ids) {
 export async function removeArticleSnapshot(id) {
   await chrome.storage.local.remove(snapshotKey(id));
 }
+
+// Highlights — user-created marks (with an optional note) over a cached
+// snapshot's text, keyed by reading-list item id. Also chrome.storage.local,
+// alongside the snapshot they annotate: small, but tied to the same cached
+// content and equally irrelevant to sync across devices.
+
+const HIGHLIGHTS_KEY_PREFIX = "highlights_";
+
+/**
+ * @typedef {Object} Highlight
+ * @property {string} id
+ * @property {number} start - character offset into the snapshot's rendered text (inclusive)
+ * @property {number} end - character offset into the snapshot's rendered text (exclusive)
+ * @property {string} text - the highlighted text itself, snapshotted at creation time
+ * @property {string | null} note
+ * @property {number} createdAt - epoch ms
+ */
+
+function highlightsKey(id) {
+  return `${HIGHLIGHTS_KEY_PREFIX}${id}`;
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<Highlight[]>}
+ */
+export async function getHighlights(id) {
+  const result = await chrome.storage.local.get(highlightsKey(id));
+  return result[highlightsKey(id)] || [];
+}
+
+/**
+ * @param {string} id
+ * @param {Highlight[]} highlights
+ */
+export async function saveHighlights(id, highlights) {
+  await chrome.storage.local.set({ [highlightsKey(id)]: highlights });
+}
+
+/** @param {string} id */
+export async function removeHighlights(id) {
+  await chrome.storage.local.remove(highlightsKey(id));
+}

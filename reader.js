@@ -1,5 +1,5 @@
 import { getReadingList, getSettings, saveSettings, SETTINGS_KEY } from "./storage.js";
-import { getArticleSnapshot } from "./content-cache.js";
+import { getArticleSnapshot, getHighlights, saveHighlights } from "./content-cache.js";
 
 const metaEl = document.getElementById("meta");
 const titleEl = document.getElementById("article-title");
@@ -12,6 +12,12 @@ const settingsPanel = document.getElementById("reader-settings-panel");
 const fontSizeSelect = document.getElementById("reader-font-size-select");
 const fontFamilySelect = document.getElementById("reader-font-family-select");
 const widthSelect = document.getElementById("reader-width-select");
+const highlightToolbarEl = document.getElementById("highlight-toolbar");
+
+/** Id of the article currently loaded — set once in load(), read by the highlight handlers below. */
+let currentItemId = null;
+/** In-memory copy of the current article's highlights, kept in sync with chrome.storage.local. @type {import("./content-cache.js").Highlight[]} */
+let highlights = [];
 
 const FONT_SIZE_PRESETS = {
   small: { fontSize: "14px", lineHeight: "1.6" },
@@ -79,6 +85,219 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   applyReaderSettings(changes[SETTINGS_KEY].newValue);
 });
 
+// --- Highlights -------------------------------------------------------
+//
+// The cached article HTML never changes after extraction, so a highlight
+// can be anchored by plain character offsets into #article-content's
+// rendered text — no need for anything more elaborate (e.g. XPath ranges),
+// which mostly exist to survive a live page's DOM changing between visits.
+
+/** Collects #article-content's text nodes in document order. */
+function getTextNodes(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  return nodes;
+}
+
+/**
+ * @param {Node} root
+ * @param {Range} range
+ * @returns {{ start: number, end: number } | null}
+ */
+function rangeToOffsets(root, range) {
+  let offset = 0;
+  let start = null;
+  let end = null;
+  for (const node of getTextNodes(root)) {
+    const len = node.nodeValue.length;
+    if (start === null && node === range.startContainer) start = offset + range.startOffset;
+    if (node === range.endContainer) {
+      end = offset + range.endOffset;
+      break;
+    }
+    offset += len;
+  }
+  return start !== null && end !== null ? { start, end } : null;
+}
+
+/**
+ * Wraps the text at [start, end) of `root`'s text content in a <mark>,
+ * splitting text nodes as needed. Re-walks `root` fresh each call — safe to
+ * call once per highlight in a loop, since wrapping never changes overall
+ * character count or order, only which element a given text node sits in.
+ * @param {Node} root
+ * @param {number} start
+ * @param {number} end
+ * @param {(mark: HTMLElement) => void} configureMark
+ */
+function wrapOffsetRange(root, start, end, configureMark) {
+  let offset = 0;
+  for (const node of getTextNodes(root)) {
+    const len = node.nodeValue.length;
+    const nodeStart = offset;
+    const nodeEnd = offset + len;
+    offset += len;
+    if (nodeEnd <= start || nodeStart >= end) continue;
+
+    const overlapStart = Math.max(start, nodeStart) - nodeStart;
+    const overlapEnd = Math.min(end, nodeEnd) - nodeStart;
+    const before = node.nodeValue.slice(0, overlapStart);
+    const middle = node.nodeValue.slice(overlapStart, overlapEnd);
+    const after = node.nodeValue.slice(overlapEnd);
+
+    const mark = document.createElement("mark");
+    mark.className = "rl-highlight";
+    mark.textContent = middle;
+    configureMark(mark);
+
+    const parent = node.parentNode;
+    const afterNode = after ? document.createTextNode(after) : null;
+    parent.insertBefore(mark, node.nextSibling);
+    if (afterNode) parent.insertBefore(afterNode, mark.nextSibling);
+    node.nodeValue = before;
+  }
+}
+
+function applyHighlights() {
+  for (const highlight of [...highlights].sort((a, b) => a.start - b.start)) {
+    wrapOffsetRange(contentEl, highlight.start, highlight.end, (mark) => {
+      mark.dataset.highlightId = highlight.id;
+      mark.classList.toggle("has-note", Boolean(highlight.note));
+    });
+  }
+}
+
+function hideHighlightToolbar() {
+  highlightToolbarEl.classList.remove("is-visible");
+}
+
+document.addEventListener("mouseup", (event) => {
+  if (!contentEl.contains(event.target)) {
+    hideHighlightToolbar();
+    return;
+  }
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+    hideHighlightToolbar();
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  if (!contentEl.contains(range.commonAncestorContainer)) {
+    hideHighlightToolbar();
+    return;
+  }
+
+  const rect = range.getBoundingClientRect();
+  highlightToolbarEl.style.left = `${rect.left + rect.width / 2}px`;
+  highlightToolbarEl.style.top = `${rect.top - 8}px`;
+  highlightToolbarEl.classList.add("is-visible");
+});
+
+highlightToolbarEl.addEventListener("mousedown", (event) => {
+  // Prevent this click from collapsing the selection before its own
+  // mouseup fires — a plain click on any other element does that by default.
+  event.preventDefault();
+});
+
+highlightToolbarEl.addEventListener("click", async () => {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const offsets = rangeToOffsets(contentEl, selection.getRangeAt(0));
+  hideHighlightToolbar();
+  selection.removeAllRanges();
+  if (!offsets || offsets.start === offsets.end) return;
+
+  const highlight = {
+    id: crypto.randomUUID(),
+    start: offsets.start,
+    end: offsets.end,
+    text: contentEl.textContent.slice(offsets.start, offsets.end),
+    note: null,
+    createdAt: Date.now(),
+  };
+  highlights.push(highlight);
+  await saveHighlights(currentItemId, highlights);
+  wrapOffsetRange(contentEl, highlight.start, highlight.end, (mark) => {
+    mark.dataset.highlightId = highlight.id;
+  });
+});
+
+let activePopoverEl = null;
+
+function closeHighlightPopover() {
+  activePopoverEl?.remove();
+  activePopoverEl = null;
+}
+
+function openHighlightPopover(mark, highlight) {
+  closeHighlightPopover();
+
+  const popover = document.createElement("div");
+  popover.className = "rl-highlight-popover";
+
+  const quote = document.createElement("p");
+  quote.className = "quote";
+  quote.textContent = `"${highlight.text}"`;
+
+  const textarea = document.createElement("textarea");
+  textarea.placeholder = "Add a note…";
+  textarea.value = highlight.note || "";
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "remove-btn";
+  removeBtn.textContent = "Remove";
+  removeBtn.addEventListener("click", async () => {
+    highlights = highlights.filter((h) => h.id !== highlight.id);
+    await saveHighlights(currentItemId, highlights);
+    mark.replaceWith(...mark.childNodes);
+    contentEl.normalize(); // merges the text node(s) left behind back together
+    closeHighlightPopover();
+  });
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "save-btn";
+  saveBtn.textContent = "Save note";
+  saveBtn.addEventListener("click", async () => {
+    highlight.note = textarea.value.trim() || null;
+    await saveHighlights(currentItemId, highlights);
+    mark.classList.toggle("has-note", Boolean(highlight.note));
+    closeHighlightPopover();
+  });
+
+  actions.append(removeBtn, saveBtn);
+  popover.append(quote, textarea, actions);
+  document.body.appendChild(popover);
+
+  const rect = mark.getBoundingClientRect();
+  popover.style.left = `${Math.min(rect.left, window.innerWidth - 256)}px`;
+  popover.style.top = `${rect.bottom + 8}px`;
+
+  activePopoverEl = popover;
+}
+
+contentEl.addEventListener("click", (event) => {
+  const mark = event.target.closest(".rl-highlight");
+  if (!mark) return;
+  const highlight = highlights.find((h) => h.id === mark.dataset.highlightId);
+  if (highlight) openHighlightPopover(mark, highlight);
+});
+
+document.addEventListener("click", (event) => {
+  if (!activePopoverEl || activePopoverEl.contains(event.target) || event.target.closest(".rl-highlight")) return;
+  closeHighlightPopover();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeHighlightPopover();
+});
+
 function showState(html) {
   stateEl.innerHTML = html;
   stateEl.hidden = false;
@@ -102,8 +321,15 @@ async function load() {
     return;
   }
 
-  const [items, snapshot] = await Promise.all([getReadingList(), getArticleSnapshot(itemId)]);
+  currentItemId = itemId;
+
+  const [items, snapshot, storedHighlights] = await Promise.all([
+    getReadingList(),
+    getArticleSnapshot(itemId),
+    getHighlights(itemId),
+  ]);
   const item = items.find((i) => i.id === itemId);
+  highlights = storedHighlights;
 
   if (!item) {
     showState("This article is no longer in your reading list.");
@@ -150,6 +376,7 @@ async function load() {
   // inline script execution regardless — this mirrors how Firefox's Reader
   // View treats the same library's output.
   contentEl.innerHTML = snapshot.content;
+  applyHighlights();
   metaEl.classList.add("is-visible");
   settingsBtn.classList.add("is-visible");
 }

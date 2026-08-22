@@ -9,7 +9,7 @@ import {
   migrateLegacyStorage,
   getSettings,
 } from "./storage.js";
-import { saveArticleSnapshot, removeArticleSnapshot } from "./content-cache.js";
+import { saveArticleSnapshot, removeArticleSnapshot, removeHighlights } from "./content-cache.js";
 
 const BADGE_IDLE_COLOR = "#4f46e5"; // indigo — normal unread count
 const BADGE_SUCCESS_COLOR = "#16a34a"; // green — item added
@@ -308,7 +308,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  Promise.all([removeFromReadingList(message.id), removeArticleSnapshot(message.id)])
+  Promise.all([removeFromReadingList(message.id), removeArticleSnapshot(message.id), removeHighlights(message.id)])
     .then(() => sendResponse({ ok: true }))
     .catch((error) => sendResponse({ ok: false, error: error.message }));
 
